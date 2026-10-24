@@ -58,6 +58,8 @@ header.top .wrap{display:flex;flex-direction:column;align-items:center;gap:10px;
 nav.main{display:flex;gap:6px 24px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
 header.top.compact .logo{height:40px}
 nav.main a{text-decoration:none}
+nav.main .nx{display:inline-block;flex:none;width:11px;height:11px;background:linear-gradient(var(--ink),var(--ink)) center/1px 100% no-repeat,linear-gradient(var(--ink),var(--ink)) center/100% 1px no-repeat;opacity:.85}
+@media (max-width:520px){nav.main .nx{display:none}}
 nav.main a:hover{color:var(--safe)}
 .hd-tools{position:absolute;right:var(--gutR);top:50%;transform:translateY(-50%);display:flex;gap:8px;z-index:2}
 .hd-btn{display:grid;place-items:center;width:38px;height:38px;border:1px solid var(--ink);background:none;color:var(--ink);font-family:var(--f-mono);font-size:12px;font-weight:700;letter-spacing:.08em;cursor:pointer;text-decoration:none;transition:background .2s,color .2s,border-color .2s}
@@ -474,9 +476,11 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
   <div class="wrap"><i class="cx bl"></i><i class="cx br"></i>
     <a class="brand" href="#top" aria-label="Cyril Féron, retour à l’accueil" data-i18n-aria="home"><span class="logo" aria-hidden="true"></span></a>
     <nav class="main" aria-label="Navigation principale" data-i18n-aria="nav">
+      <i class="nx" aria-hidden="true"></i>
       <a href="#galeries" data-i18n="galleries">Galeries</a>
       <a href="#bio">Bio &amp; contact</a>
       <a class="btn-cta" id="storeLink" href="#boutique" data-i18n="prints">Tirages →</a>
+      <i class="nx" aria-hidden="true"></i>
     </nav>
     <div class="hd-tools"><button type="button" class="hd-btn" id="cartBtn" aria-label="Panier" data-i18n-aria="cart" title="Panier"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12.5H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span class="cart-n" id="cartN" hidden>0</span></button><a class="hd-btn" id="mailBtn" href="#contact" aria-label="Contact" title="Contact"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg></a><button type="button" class="hd-btn lang" id="langBtn" aria-label="Switch to English">EN</button></div>
   </div>
