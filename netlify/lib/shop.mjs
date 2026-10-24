@@ -2,12 +2,12 @@
 // Le site affiche les mêmes valeurs, mais seuls ces chiffres-ci comptent au paiement.
 import { getStore } from "@netlify/blobs";
 
-export const EDITION = 30; // exemplaires par photo et par format
+// Édition de 30 exemplaires par photo, tous formats confondus.
 
 export const FORMATS = {
-  "24x30": { label: "24 × 30 cm", price: 90 },
-  "40x50": { label: "40 × 50 cm", price: 200 },
-  "50x70": { label: "50 × 70 cm", price: 320 },
+  "24x30": { label: "24 × 30 cm", price: 90, edition: 15 },
+  "40x50": { label: "40 × 50 cm", price: 200, edition: 10 },
+  "50x70": { label: "50 × 70 cm", price: 320, edition: 5 },
 };
 
 export const PRODUCTS = {
@@ -60,7 +60,7 @@ export async function checkCart(body) {
   const merged = {};
   for (const it of items) {
     const q = Number(it?.q);
-    if (!PRODUCTS[it?.p] || !FORMATS[it?.f] || !Number.isInteger(q) || q < 1 || q > EDITION) throw new Error("Article invalide.");
+    if (!PRODUCTS[it?.p] || !FORMATS[it?.f] || !Number.isInteger(q) || q < 1 || q > FORMATS[it.f].edition) throw new Error("Article invalide.");
     merged[key(it.p, it.f)] = (merged[key(it.p, it.f)] || 0) + q;
   }
   const store = editions();
@@ -68,7 +68,8 @@ export async function checkCart(body) {
   for (const [k, q] of Object.entries(merged)) {
     const [p, f] = k.split("|");
     const sold = await soldCount(store, k);
-    if (sold + q > EDITION) throw new Error(`${PRODUCTS[p]} ${FORMATS[f].label} : plus que ${Math.max(0, EDITION - sold)} exemplaire(s) disponible(s).`);
+    const cap = FORMATS[f].edition;
+    if (sold + q > cap) throw new Error(sold >= cap ? `${PRODUCTS[p]} ${FORMATS[f].label} : épuisé.` : `${PRODUCTS[p]} ${FORMATS[f].label} : plus que ${cap - sold} exemplaire(s) disponible(s).`);
     lines.push({ p, f, q, title: PRODUCTS[p], label: FORMATS[f].label, price: FORMATS[f].price });
   }
   const subtotal = lines.reduce((a, l) => a + l.price * l.q, 0);
@@ -85,7 +86,7 @@ export async function assignNumbers(lines) {
     const sold = await soldCount(store, k);
     const numbers = Array.from({ length: l.q }, (_, i) => sold + i + 1);
     await store.setJSON(k, { sold: sold + l.q, updated: new Date().toISOString() });
-    out.push({ ...l, numbers: numbers.map((n) => `${n}/${EDITION}`) });
+    out.push({ ...l, numbers: numbers.map((n) => `${n}/${FORMATS[l.f].edition}`) });
   }
   return out;
 }
