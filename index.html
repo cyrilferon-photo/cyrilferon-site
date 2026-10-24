@@ -594,7 +594,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
           <ul class="ig-grid" id="igGrid"></ul>
         </div>
         <div class="soc-block">
-          <div class="soc-top mono"><span style="font-family:'Italiana',serif;font-size:15px;letter-spacing:0;text-transform:none">UGLY</span><a href="https://ugly.social/cyrilferon" target="_blank" rel="noopener">@cyrilferon →</a></div>
+          <div class="soc-top mono"><span>UGLY</span><a href="https://ugly.social/cyrilferon" target="_blank" rel="noopener">@cyrilferon →</a></div>
           <a class="ugly-card" href="https://ugly.social/cyrilferon" target="_blank" rel="noopener">
             <span class="ugly-logo">UGLY</span>
             <span class="ugly-txt" data-i18n="uglyTxt">Le nouveau réseau social des photographes. Retrouvez-y mes publications, mes offres et mes avis.</span>
@@ -1574,7 +1574,7 @@ setTimeout(loadIg,300);
 /* ================= PUBLIER (back office → site en ligne) ================= */
 function pubUI(){const st=$('#pubState'),b=$('#pubBtn');if(!st)return;
   $('#boPub').hidden=!authed;
-  if(!SITE_LIVE){st.className='mono';st.textContent='Prototype : la publication fonctionne sur le site en ligne';b.disabled=true;return}
+  if(!SITE_LIVE){st.className='mono';st.textContent='';b.disabled=true;return}
   b.disabled=!DIRTY;st.className='mono'+(DIRTY?' dirty':'');
   st.textContent=DIRTY?'Modifications non publiées':('Tout est publié'+(PUB_AT?' · '+new Date(PUB_AT).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):''))}
 function renameId(o,n){S.galleries.forEach(g=>{g.photos=g.photos.map(x=>x===o?n:x);if(g.cover===o)g.cover=n});if(S.hero===o)S.hero=n;if(S.meta[o]){S.meta[n]=S.meta[o];delete S.meta[o]}}
