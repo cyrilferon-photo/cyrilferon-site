@@ -11,7 +11,7 @@ export const FORMATS = {
 };
 
 export const PRODUCTS = {
-  "photos/nu-artistique--sloane-06-v2.jpg": "OFF - Sloane",
+  "photos/nu-artistique--sloane-06-v3.jpg": "OFF - Sloane",
   "photos/nu-artistique--cerizvodka-15.jpg": "FLOWERS - Cerizvodka",
   "photos/nu-artistique--jess-04.jpg": "LILY - Jess",
   "photos/nu-artistique--cerizvodka-07.jpg": "MIRROR - Cerizvodka",
