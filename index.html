@@ -1482,17 +1482,17 @@ $('#cartZone').addEventListener('change',e=>{ZONE=e.target.value;try{localStorag
 
 
 /* ================= SUIVRE : fil Instagram automatique (Behold) ================= */
-/* Colle ici l'identifiant du flux Behold (behold.so) une fois ton compte Instagram connecté. */
-const BEHOLD_FEED_ID='';
+/* Le flux passe par /api/instagram (fonction Netlify, cache 1 h) ; ailleurs, sélection de photos du site. */
+const IG_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
 const IG_FALLBACK=['photos/concerts--sun-01.jpg','photos/voyages--newyorkcity-24.jpg','photos/metiers--danielferon-02.jpg','photos/voyages--miami-04.jpg','photos/concerts--concerts-01.jpg','photos/metiers--pascalarlot-03.jpg'];
 function igTiles(items){$('#igGrid').innerHTML=items.map(it=>`<li><a href="${esc(it.href)}" target="_blank" rel="noopener" aria-label="${esc(it.alt||'Instagram')}"><img src="${esc(it.src)}" alt="" loading="lazy" decoding="async">${it.video?'<span class="ig-vid" aria-hidden="true">▶</span>':''}</a></li>`).join('');
   $('#igGrid').querySelectorAll('img').forEach(i=>{if(i.complete)i.classList.add('ld');else i.onload=()=>i.classList.add('ld')})}
 async function loadIg(){
   const fb=()=>igTiles(IG_FALLBACK.filter(p=>urls[p]).map(p=>({src:urls[p],href:'https://www.instagram.com/araak',alt:'Instagram @araak'})));
-  if(!BEHOLD_FEED_ID){fb();return}
-  try{const d=await fetch('https://feeds.behold.so/'+BEHOLD_FEED_ID).then(r=>{if(!r.ok)throw 0;return r.json()});
-    const posts=(Array.isArray(d)?d:(d.posts||[])).slice(0,6);if(!posts.length)throw 0;
-    igTiles(posts.map(x=>({src:(x.sizes&&x.sizes.medium&&x.sizes.medium.mediaUrl)||(x.mediaType==='VIDEO'?x.thumbnailUrl:x.mediaUrl),href:x.permalink||'https://www.instagram.com/araak',alt:(x.caption||'').slice(0,80),video:x.mediaType==='VIDEO'})))
+  if(!IG_LIVE){fb();return}
+  try{const d=await fetch('/api/instagram').then(r=>{if(!r.ok)throw 0;return r.json()});
+    const posts=(d.posts||[]).filter(x=>x.src).slice(0,6);if(!posts.length)throw 0;
+    igTiles(posts.map(x=>({src:x.src,href:x.href||'https://www.instagram.com/araak',alt:x.alt,video:x.video})))
   }catch(_){fb()}
 }
 setTimeout(loadIg,300);
