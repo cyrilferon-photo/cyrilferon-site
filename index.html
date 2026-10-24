@@ -1215,7 +1215,9 @@ function openLbList(list,k,fromHero){lbList=list;lbI=k;lbFromHero=!!fromHero;if(
 function openLb(k){const g=S.galleries.find(x=>x.id===S.open);openLbList(g.photos.filter(has),k,false)}
 function printUrl(p){const u=(S.meta[p]&&S.meta[p].printUrl)||'';return /^https?:\/\//i.test(u)?u:''}
 function photoLabel(p){const g=galOf(p);return g?galName(g)+' '+t('no')+(g.photos.indexOf(p)+1):'Photo'}
-function showLb(){const p=lbList[lbI];$('#lbImg').src=lbFromHero?hdSrc(p):urls[p];$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
+/* en grand : toujours la photo de la galerie (version HD d'origine si elle existe), jamais le recadrage du carrousel */
+const lbSrc=p=>(lbFromHero&&HERO_HD.has(p)&&!HERO_HD_FILE[p]&&urls[p]&&!urls[p].startsWith('blob:'))?p.replace('photos/','photos/hd/'):(p==='photos/metiers--patisserie-03.jpg'&&urls[p]&&!urls[p].startsWith('blob:')?'photos/hd/metiers--patisserie-03.jpg':urls[p]);
+function showLb(){const p=lbList[lbI];$('#lbImg').src=lbSrc(p);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
   $('#lbTitle').textContent=[photoTitle(p),galName(galOf(p))].filter(Boolean).join(' · ');
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
   const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'');$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?'#boutique':(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
