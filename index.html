@@ -386,7 +386,10 @@ body.bo-open .scrim{display:none}
 .glist li{display:grid;grid-template-columns:1fr auto;align-items:center;border-bottom:1px solid var(--line)}
 .glist li:last-child{border-bottom:0}
 .glist .pick{background:none;border:0;text-align:left;padding:10px 12px;display:flex;justify-content:space-between;gap:8px;min-width:0}
-.glist .pick[aria-current="true"]{background:var(--paper);font-weight:700}
+.glist .pick{transition:background .2s,color .2s}
+.glist .pick:hover{color:var(--safe)}
+.glist .pick[aria-current="true"]{background:var(--safe);color:var(--paper);font-weight:700}
+.glist .pick[aria-current="true"] small{color:var(--paper)}
 .glist .pick small{color:var(--mute);font-family:var(--f-mono);font-size:11px}
 .ibtns{display:flex}
 .ib{border:0;border-left:1px solid var(--line);background:none;width:36px;height:40px;font-size:14px}
