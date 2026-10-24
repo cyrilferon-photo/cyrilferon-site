@@ -395,6 +395,21 @@ body.is-store main>:not(#boutique){display:none!important}
 .danger{border:1px solid var(--safe);color:var(--safe);background:none;padding:8px 12px}
 .danger.arm{background:var(--safe);color:#fff}
 .hint{font-size:13px;color:var(--mute);margin:0}
+.st-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.st-sum div{border:1px solid var(--line);padding:10px;display:grid;gap:2px}
+.st-sum strong{font-family:var(--f-display);font-stretch:80%;font-size:22px}
+.st-sum span{font-size:11px;color:var(--mute)}
+.st-list{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.st-item{display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:start}
+.st-item img{width:56px;height:70px;object-fit:cover;display:block}
+.st-t{font-family:var(--f-display);font-weight:700;font-stretch:80%;text-transform:uppercase;font-size:15px;margin-bottom:4px}
+.st-row{display:grid;grid-template-columns:72px 1fr 40px 92px;gap:8px;align-items:center;font-size:12px;padding:2px 0}
+.st-bar{height:4px;background:var(--line);position:relative}
+.st-bar i{position:absolute;inset:0 auto 0 0;background:var(--ink)}
+.st-n{text-align:right;font-family:var(--f-mono)}
+.st-l{color:var(--mute);text-align:right;white-space:nowrap}
+.st-low .st-l,.st-low .st-n{color:#f0a04b}.st-low .st-bar i{background:#f0a04b}
+.st-out .st-l,.st-out .st-n{color:#ff6a5c}.st-out .st-bar i{background:#ff6a5c}.st-out .st-f{text-decoration:line-through;color:var(--mute)}
 .bo h3{margin:0;font-size:13px;font-family:var(--f-mono);font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
 .scrim{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .3s}
 .scrim.on{opacity:1;pointer-events:auto}
@@ -696,6 +711,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
     <div class="tabs" id="tabs" role="tablist">
       <button type="button" role="tab" data-tab="gal" aria-selected="true">Galeries</button>
       <button type="button" role="tab" data-tab="txt" aria-selected="false">Textes</button>
+      <button type="button" role="tab" data-tab="shop" aria-selected="false">Boutique</button>
     </div>
   </div>
   <div class="bo-body" id="boBody"></div>
@@ -1310,6 +1326,19 @@ function renderBo(){
         <div class="field"><label for="lg-pw2">Confirmez le mot de passe</label><input id="lg-pw2" type="password" autocomplete="new-password"></div>
         <button class="send" type="submit">Créer et se connecter</button>
         <p class="status" id="lg-msg" role="status"></p></form>`;
+    return;
+  }
+  if(tab==='shop'){
+    const rows=STORE_PHOTOS.map(p=>{
+      const fm=FORMATS.map(f=>{const sold=SOLD[p+'|'+f.id]||0,cap=EDITIONS[f.id],left=Math.max(0,cap-sold),st=left<=0?'out':left<=HURRY[f.id]?'low':'ok';
+        return `<div class="st-row st-${st}"><span class="st-f">${f.label}</span><span class="st-bar"><i style="width:${Math.round(sold/cap*100)}%"></i></span><span class="st-n">${sold} / ${cap}</span><span class="st-l">${left<=0?'Épuisé':left+' restant'+(left>1?'s':'')}</span></div>`}).join('');
+      return `<li class="st-item"><img src="${urls[p]}" alt=""><div><div class="st-t">${esc(storeTitle(p))}</div>${fm}</div></li>`}).join('');
+    const tot=STORE_PHOTOS.reduce((a,p)=>a+FORMATS.reduce((b,f)=>b+(SOLD[p+'|'+f.id]||0),0),0);
+    const ca=STORE_PHOTOS.reduce((a,p)=>a+FORMATS.reduce((b,f)=>b+(SOLD[p+'|'+f.id]||0)*f.price,0),0);
+    body.innerHTML=`<h3>État des stocks</h3>
+      <div class="st-sum"><div><strong>${tot}</strong><span>tirages vendus</span></div><div><strong>${money(ca)}</strong><span>de ventes (hors port)</span></div><div><strong>${STORE_PHOTOS.length*30-tot}</strong><span>exemplaires restants</span></div></div>
+      <ul class="st-list">${rows}</ul>
+      <p class="hint">Édition de 30 par photo : 15 en 24 × 30, 10 en 40 × 50, 5 en 50 × 70. Orange : derniers exemplaires (alerte affichée sur la fiche). Rouge : épuisé. ${PAY_LIVE?'Chiffres en direct depuis le serveur.':'Prototype : chiffres de démonstration (les ventes réelles s’afficheront sur le site en ligne).'}</p>`;
     return;
   }
   if(tab==='txt'){
