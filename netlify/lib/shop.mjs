@@ -15,7 +15,7 @@ export const PRODUCTS = {
   "photos/nu-artistique--cerizvodka-15.jpg": "FLOWERS - Cerizvodka",
   "photos/nu-artistique--jess-04.jpg": "LILY - Jess",
   "photos/nu-artistique--cerizvodka-07.jpg": "MIRROR - Cerizvodka",
-  "photos/nu-artistique--sloane-09.jpg": "FREEDOM - Sloane",
+  "photos/nu-artistique--sloane-09-v2.jpg": "FREEDOM - Sloane",
   "photos/nu-artistique--cerizvodka-12-v2.jpg": "ROSE - Cerizvodka",
   "photos/voyages--newyorkcity-24.jpg": "OCULUS",
   "photos/voyages--newyorkcity-08.jpg": "THUNDERBOLT",
