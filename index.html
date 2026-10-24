@@ -371,6 +371,11 @@ body.bo-open .scrim{display:none}
 .bo-head .top-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .bo-head h2{margin:0;font-family:var(--f-display);font-weight:800;font-stretch:75%;text-transform:uppercase;font-size:24px}
 .bo-note{margin:0;font-size:13px;color:var(--mute)}
+.bo-pub{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.bo-pub .mono{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.bo-pub .mono.dirty{color:#f0a04b}
+.bo-pub .send{padding:9px 16px}
+.bo-pub .send:disabled{opacity:.45;cursor:default}
 .tabs{display:flex;gap:4px}
 .tabs button{border:1px solid var(--line);background:none;padding:6px 12px;border-radius:0;font-size:14px}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
@@ -715,7 +720,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
 <aside class="bo" id="bo" aria-label="Back office" aria-hidden="true">
   <div class="bo-head">
     <div class="top-row"><h2>Back office</h2><span style="display:flex;gap:8px"><button type="button" class="out" id="logout" hidden>Se déconnecter</button><button class="x" id="closeBo" type="button" aria-label="Fermer le back office">×</button></span></div>
-    <p class="bo-note">Aperçu de démonstration. Vos photos et vos textes restent dans ce navigateur : rien n'est mis en ligne.</p>
+    <div class="bo-pub" id="boPub"><span class="mono" id="pubState"></span><button type="button" class="send" id="pubBtn">Publier sur le site</button></div>
     <div class="tabs" id="tabs" role="tablist">
       <button type="button" role="tab" data-tab="gal" aria-selected="true">Galeries</button>
       <button type="button" role="tab" data-tab="txt" aria-selected="false">Textes</button>
@@ -782,7 +787,7 @@ const DEFAULT=()=>({
   galleries:SEED.map(g=>({id:uid(),name:g.name,intro:(GAL_INTRO[g.name]||{}).fr||"",introEn:(GAL_INTRO[g.name]||{}).en||"",photos:[...g.photos],cover:g.cover}))
 });
 let S=DEFAULT(); S.open=null;
-let saveT; const save=()=>{clearTimeout(saveT);saveT=setTimeout(()=>DB.put('kv','state2',JSON.parse(JSON.stringify(S))),250)};
+let saveT,DIRTY=false,PUB_AT=''; const save=()=>{DIRTY=true;try{DB.put('kv','dirty',true)}catch(_){}if(typeof pubUI==='function')pubUI();clearTimeout(saveT);saveT=setTimeout(()=>DB.put('kv','state2',JSON.parse(JSON.stringify(S))),250)};
 
 const has=id=>id&&urls[id];
 const coverOf=g=>has(g.cover)?g.cover:(g.photos.find(has)||null);
@@ -1299,10 +1304,13 @@ $('#contact').addEventListener('submit',async e=>{e.preventDefault();const f=e.t
 /* ---------- back office ---------- */
 const bo=$('#bo'),scrim=$('#scrim');let tab='gal',boSel=null,armDel=null,boPrint=null;
 let pwHash=null,pwReady=false,authed=false;
+/* site en ligne : back office protégé par le mot de passe ADMIN_PASSWORD (Netlify), modifications publiées pour tous */
+const SITE_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
+let TOKEN='';try{TOKEN=sessionStorage.getItem('cf-tok')||''}catch(_){}
 try{authed=sessionStorage.getItem('cf-auth')==='1'}catch(_){}
 /* Mot de passe désactivé pendant la phase de prototype : passer à true pour le réactiver */
-const REQUIRE_PASSWORD=false;
-if(!REQUIRE_PASSWORD)authed=true;
+const REQUIRE_PASSWORD=SITE_LIVE;
+if(!REQUIRE_PASSWORD)authed=true;else authed=!!TOKEN;
 async function hash(s){
   if(!(window.crypto&&crypto.subtle))return 'plain:'+s;
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('cf-proto:'+s));
@@ -1310,7 +1318,7 @@ async function hash(s){
 }
 /* Back office verrouillé pour le moment : passer à true pour le rouvrir */
 /* back office : actif sur le prototype, désactivé sur le site public tant qu'il n'est pas protégé par un vrai compte */
-const BO_ENABLED=!/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
+const BO_ENABLED=true;
 if(!BO_ENABLED){$('#openBo').hidden=true}
 const setHdrH=()=>document.documentElement.style.setProperty('--hdrH',Math.round(document.querySelector('header.top').getBoundingClientRect().bottom)+'px');
 addEventListener('resize',()=>{if(bo.classList.contains('open'))setHdrH()});
@@ -1322,7 +1330,7 @@ document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>{tab=b.da
 
 function renderBo(){
   const body=$('#boBody');
-  $('#tabs').hidden=!authed;$('#logout').hidden=!authed||!REQUIRE_PASSWORD;
+  $('#tabs').hidden=!authed;$('#logout').hidden=!authed||!REQUIRE_PASSWORD;pubUI();
   if(!authed){
     if(!pwReady){body.innerHTML='<p class="hint">Chargement…</p>';return}
     body.innerHTML=pwHash?`<form id="lg" class="lg" novalidate>
@@ -1403,6 +1411,13 @@ function renderBo(){
 $('#boBody').addEventListener('submit',async e=>{
   if(e.target.id!=='lg')return;e.preventDefault();
   const pw=$('#lg-pw').value,msg=$('#lg-msg');
+  if(SITE_LIVE){
+    msg.textContent='Connexion…';
+    try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});const d=await r.json().catch(()=>({}));
+      if(!r.ok){msg.textContent=d.error||'Connexion impossible.';$('#lg-pw').select();return}
+      TOKEN=d.token;try{sessionStorage.setItem('cf-tok',TOKEN)}catch(_){}authed=true;renderBo();pubUI();}catch(_){msg.textContent='Connexion impossible.'}
+    return;
+  }
   if(!pwHash){
     if(pw.length<8){msg.textContent='Choisissez au moins 8 caractères.';return}
     if(pw!==$('#lg-pw2').value){msg.textContent='Les deux mots de passe ne correspondent pas.';return}
@@ -1411,16 +1426,16 @@ $('#boBody').addEventListener('submit',async e=>{
   authed=true;try{sessionStorage.setItem('cf-auth','1')}catch(_){}
   renderBo();
 });
-$('#logout').onclick=()=>{authed=false;try{sessionStorage.removeItem('cf-auth')}catch(_){}closeBo()};
+$('#logout').onclick=()=>{authed=false;TOKEN='';try{sessionStorage.removeItem('cf-auth');sessionStorage.removeItem('cf-tok')}catch(_){}closeBo()};
 $('#boBody').addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.k){S[t.dataset.k]=t.value;save();renderSite();return}
   if(t.dataset.print){const p=t.dataset.print;S.meta[p]=Object.assign({},S.meta[p],{printUrl:t.value.trim()});save();return}
 });
 $('#boBody').addEventListener('change',e=>{
-  if(e.target.dataset.print)renderBo();
-  if(t.dataset.g){const g=S.galleries.find(x=>x.id===boSel);g[t.dataset.g]=t.value;save();renderSite();
-    const li=$('#boBody .pick[aria-current="true"] span');if(li&&t.dataset.g==='name')li.textContent=t.value}
+  const el=e.target;if(el.dataset.print)renderBo();
+  if(el.dataset.g){const g=S.galleries.find(x=>x.id===boSel);g[el.dataset.g]=el.value;save();renderSite();
+    const li=$('#boBody .pick[aria-current="true"] span');if(li&&el.dataset.g==='name')li.textContent=el.value}
 });
 $('#boBody').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
@@ -1472,11 +1487,16 @@ if(location.hash==='#boutique'){showStore(true);if('scrollRestoration' in histor
 else if(galFromHash()){syncFromHash(false);setTimeout(()=>glideTo($('#galerie')),350)}
 (async()=>{
   await DB.open();
-  pwHash=await DB.get('kv','pw');pwReady=true;
+  pwHash=SITE_LIVE?'server':await DB.get('kv','pw');pwReady=true;
+  let PUB=null;
+  if(SITE_LIVE){try{const r=await fetch('/api/content',{cache:'no-store'});const d=await r.json();if(d&&d.content){PUB=d.content;PUB_AT=d.updated||''}}catch(_){}}
+  const draftDirty=SITE_LIVE?(authed&&await DB.get('kv','dirty')):true;
+  if(PUB&&!draftDirty){S=Object.assign(DEFAULT(),PUB);S.open=(galFromHash()||{}).id||null;S.galleries.flatMap(g=>g.photos).forEach(id=>{if(String(id).startsWith('media/'))urls[id]='/api/'+id});DIRTY=false;renderSite();if(typeof pubUI==='function')pubUI();return}
   if(bo.classList.contains('open'))renderBo();
   if(location.hash==='#admin')openBo();
-  const saved=await DB.get('kv','state2');
+  const saved=draftDirty?await DB.get('kv','state2'):null;
   if(saved&&saved.galleries){
+    DIRTY=SITE_LIVE;
     S=Object.assign(DEFAULT(),saved);
     S.open=(galFromHash()||{}).id||null;
     {const o='photos/nu-artistique--cerizvodka-12.jpg',n='photos/nu-artistique--cerizvodka-12-v2.jpg';S.galleries.forEach(g=>{g.photos=g.photos.map(x=>x===o?n:x);if(g.cover===o)g.cover=n});if(S.hero===o)S.hero=n;if(S.meta[o]){S.meta[n]=S.meta[o];delete S.meta[o]}}
@@ -1489,9 +1509,10 @@ else if(galFromHash()){syncFromHash(false);setTimeout(()=>glideTo($('#galerie'))
     if((S.bio||'').includes("de mon père, m'enseignant la patience"))S.bio=S.bio.replace("de mon père, m'enseignant la patience","de mon père, qui m'a appris la patience");
     if((S.bio||'').startsWith('Suspendre le temps pour raconter'))S.bio=S.bio.replace('Suspendre le temps pour raconter','Suspendre le temps\npour raconter');
     const ids=S.galleries.flatMap(g=>g.photos);
-    for(const id of ids){if(urls[id])continue;const b=await DB.get('photos',id);if(b)urls[id]=URL.createObjectURL(b)}
+    for(const id of ids){if(urls[id])continue;if(String(id).startsWith('media/')){urls[id]='/api/'+id;continue}const b=await DB.get('photos',id);if(b)urls[id]=URL.createObjectURL(b)}
     renderSite();
   }
+  if(typeof pubUI==='function')pubUI();
 })();
 /* ================= PAIEMENTS (Stripe + PayPal via fonctions Netlify) ================= */
 let PAYCFG=null,ppReady=false;const PAY_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
@@ -1549,5 +1570,38 @@ async function loadIg(){
   }catch(_){fb()}
 }
 setTimeout(loadIg,300);
+
+/* ================= PUBLIER (back office → site en ligne) ================= */
+function pubUI(){const st=$('#pubState'),b=$('#pubBtn');if(!st)return;
+  $('#boPub').hidden=!authed;
+  if(!SITE_LIVE){st.className='mono';st.textContent='Prototype : la publication fonctionne sur le site en ligne';b.disabled=true;return}
+  b.disabled=!DIRTY;st.className='mono'+(DIRTY?' dirty':'');
+  st.textContent=DIRTY?'Modifications non publiées':('Tout est publié'+(PUB_AT?' · '+new Date(PUB_AT).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):''))}
+function renameId(o,n){S.galleries.forEach(g=>{g.photos=g.photos.map(x=>x===o?n:x);if(g.cover===o)g.cover=n});if(S.hero===o)S.hero=n;if(S.meta[o]){S.meta[n]=S.meta[o];delete S.meta[o]}}
+async function publish(){
+  const b=$('#pubBtn'),st=$('#pubState');if(!SITE_LIVE||!DIRTY)return;
+  b.disabled=true;const auth={Authorization:'Bearer '+TOKEN};
+  try{
+    const local=[...new Set(S.galleries.flatMap(g=>g.photos))].filter(id=>urls[id]&&urls[id].startsWith('blob:'));
+    let n=0;
+    for(const id of local){st.textContent=`Envoi des photos ${++n} / ${local.length}…`;
+      const blob=await fetch(urls[id]).then(r=>r.blob());
+      const r=await fetch('/api/upload',{method:'POST',headers:Object.assign({'Content-Type':blob.type||'image/jpeg'},auth),body:blob});const d=await r.json().catch(()=>({}));
+      if(r.status===401)throw new Error('session');if(!r.ok)throw new Error(d.error||'upload');
+      const nid='media/'+d.key;urls[nid]='/api/'+nid;renameId(id,nid)}
+    st.textContent='Publication…';
+    const content=JSON.parse(JSON.stringify(Object.assign({},S,{open:null})));
+    const r=await fetch('/api/content',{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},auth),body:JSON.stringify({content})});const d=await r.json().catch(()=>({}));
+    if(r.status===401)throw new Error('session');if(!r.ok)throw new Error(d.error||'publish');
+    DIRTY=false;PUB_AT=d.updated||new Date().toISOString();await DB.put('kv','dirty',false);await DB.put('kv','state2',JSON.parse(JSON.stringify(S)));
+    pubUI();st.textContent='Publié ✓ · visible par tous les visiteurs';renderSite();renderBo();
+  }catch(e){
+    if(e.message==='session'){authed=false;TOKEN='';try{sessionStorage.removeItem('cf-tok')}catch(_){}renderBo();st.textContent='Session expirée : reconnectez-vous, vos modifications sont conservées.'}
+    else st.textContent='La publication a échoué ('+e.message+'). Réessayez.';
+    b.disabled=false;
+  }
+}
+$('#pubBtn').onclick=publish;
+pubUI();
 })();
 </script>
