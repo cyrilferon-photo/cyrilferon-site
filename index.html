@@ -1258,7 +1258,7 @@ function showLb(){const p=lbList[lbI];$('#lbImg').src=lbSrc(p);$('#lbPos').textC
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
   const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||NO_PRINT.has(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?'#boutique':(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
 /* photos sans bouton « Demander un tirage » (ex. photo exposée, pas d'édition prévue) */
-const NO_PRINT=new Set(['photos/nu-artistique--sloane-10.jpg']);
+const NO_PRINT=new Set(['photos/nu-artistique--sloane-10.jpg','photos/nu-artistique--cerizvodka-03.jpg']);
 $('#lbReq').onclick=()=>{const p=lbList[lbI],g=galOf(p);closeLb();
   $('#f-subject').value='print';if(g)$('#f-gal').value=g.name;
   $('#f-msg').value=t('reqMsg',{p:photoTitle(p)||photoLabel(p),g:galName(g)});
