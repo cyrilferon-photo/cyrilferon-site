@@ -1202,7 +1202,7 @@ function buildHero(){
   f.innerHTML=heroIds.map((p,i)=>`<img class="hero-slide${i?'':' on'}"${HERO_POS[p]?` style="object-position:${HERO_POS[p]}"`:''} src="${hdSrc(p)}" alt="${esc(galName(galOf(p)))}" decoding="async" ${i>1?'loading="lazy"':''}>`).join('');
   const n=heroIds.length;
   ind.innerHTML=n>1?`<span id="heroPos">01 / ${String(n).padStart(2,'0')}</span><span class="track">${heroIds.map((_,i)=>`<button type="button" data-hk="${i}" aria-label="${t('photoOf',{i:i+1,n})}"></button>`).join('')}<i class="cur" style="width:${100/n}%;left:0"></i></span>`:'';
-  $('#heroCap').textContent=galName(galOf(heroIds[0]));$('#heroTitle').textContent=photoTitle(heroIds[0]);
+  $('#heroCap').textContent=galName(galOf(heroIds[0]));$('#heroTitle').textContent='';
   $('#heroPrev').hidden=$('#heroNext').hidden=n<2;
   heroPlay();
 }
@@ -1212,7 +1212,7 @@ function showHero(k){
   if(im[(k+1)%n].loading==='lazy')im[(k+1)%n].loading='eager';
   $('#heroPos').textContent=String(k+1).padStart(2,'0')+' / '+String(n).padStart(2,'0');
   $('#heroInd .cur').style.left=(k*100/n)+'%';
-  $('#heroCap').textContent=galName(galOf(heroIds[k]));$('#heroTitle').textContent=photoTitle(heroIds[k]);
+  $('#heroCap').textContent=galName(galOf(heroIds[k]));$('#heroTitle').textContent='';
 }
 let heroHover=false;
 function heroPlay(){clearInterval(heroT);heroT=null;if(heroIds.length>1&&!heroHover&&!matchMedia('(prefers-reduced-motion:reduce)').matches)heroT=setInterval(()=>showHero(heroK+1),5500)}
@@ -1289,7 +1289,7 @@ function photoLabel(p){const g=galOf(p);return g?galName(g)+' '+t('no')+(g.photo
 /* en grand : toujours la photo de la galerie (version HD d'origine si elle existe), jamais le recadrage du carrousel */
 const lbSrc=p=>(lbFromHero&&HERO_HD.has(p)&&!HERO_HD_FILE[p]&&urls[p]&&!urls[p].startsWith('blob:'))?p.replace('photos/','photos/hd/'):(p==='photos/metiers--patisserie-03.jpg'&&urls[p]&&!urls[p].startsWith('blob:')?'photos/hd/metiers--patisserie-03.jpg':urls[p]);
 function showLb(){const p=lbList[lbI];$('#lbImg').src=lbSrc(p);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
-  $('#lbTitle').textContent=[photoTitle(p),galName(galOf(p))].filter(Boolean).join(' · ');
+  $('#lbTitle').textContent=galName(galOf(p))||'';
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
   const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||NO_PRINT.has(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?'#boutique':(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
 /* photos sans bouton « Demander un tirage » (ex. photo exposée, pas d'édition prévue) */
