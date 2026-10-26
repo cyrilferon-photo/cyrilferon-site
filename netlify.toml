@@ -16,3 +16,125 @@
   from = "/store"
   to = "/index.html"
   status = 200
+
+# Anciennes adresses du site Format → nouvelles adresses (continuité des liens)
+[[redirects]]
+  from = "/home"
+  to = "/"
+  status = 301
+[[redirects]]
+  from = "/portraits"
+  to = "/#portraits"
+  status = 301
+[[redirects]]
+  from = "/violaine"
+  to = "/#portraits"
+  status = 301
+[[redirects]]
+  from = "/14348576-steven"
+  to = "/#portraits"
+  status = 301
+[[redirects]]
+  from = "/metiers"
+  to = "/#metiers"
+  status = 301
+[[redirects]]
+  from = "/artisanat"
+  to = "/#metiers"
+  status = 301
+[[redirects]]
+  from = "/patisserie"
+  to = "/#metiers"
+  status = 301
+[[redirects]]
+  from = "/concerts"
+  to = "/#concerts"
+  status = 301
+[[redirects]]
+  from = "/sun"
+  to = "/#concerts"
+  status = 301
+[[redirects]]
+  from = "/foudrock-2017"
+  to = "/#concerts"
+  status = 301
+[[redirects]]
+  from = "/hellfest2017"
+  to = "/#concerts"
+  status = 301
+[[redirects]]
+  from = "/live"
+  to = "/#concerts"
+  status = 301
+[[redirects]]
+  from = "/voyages"
+  to = "/#voyages"
+  status = 301
+[[redirects]]
+  from = "/newyork2019"
+  to = "/#voyages"
+  status = 301
+[[redirects]]
+  from = "/miami-2019"
+  to = "/#voyages"
+  status = 301
+[[redirects]]
+  from = "/nu-artistique"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/adeline"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/cerizvodka"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/reflets-cerizvodka"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/colorflowers-cerizvodka"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/beautydoesnotbeg"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/light-sloane"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/14490177-inedit-sloane"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/garden"
+  to = "/#nu-artistique"
+  status = 301
+[[redirects]]
+  from = "/flowers-cerizvodka"
+  to = "/store"
+  status = 301
+[[redirects]]
+  from = "/off-sloane"
+  to = "/store"
+  status = 301
+[[redirects]]
+  from = "/freedom-sloane"
+  to = "/store"
+  status = 301
+[[redirects]]
+  from = "/bio-contact"
+  to = "/#bio"
+  status = 301
+[[redirects]]
+  from = "/bio"
+  to = "/#bio"
+  status = 301
+[[redirects]]
+  from = "/contact"
+  to = "/#bio"
+  status = 301
