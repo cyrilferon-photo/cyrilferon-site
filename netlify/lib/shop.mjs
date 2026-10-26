@@ -10,6 +10,7 @@ export const FORMATS = {
   "50x70": { label: "50 × 70 cm", price: 320, edition: 5 },
 };
 
+// Catalogue par défaut ; remplacé par celui publié depuis le back office (site/content → store).
 export const PRODUCTS = {
   "photos/nu-artistique--sloane-06-v3.jpg": "OFF - Sloane",
   "photos/nu-artistique--cerizvodka-15.jpg": "FLOWERS - Cerizvodka",
@@ -37,6 +38,21 @@ export const ZONES = {
   world: { price: 35, countries: WORLD, name: { fr: "Livraison Colissimo suivi — international", en: "Colissimo tracked delivery — international" } },
 };
 
+const OK_PATH = /^(photos\/[a-z0-9-]+\.jpg|media\/[A-Za-z0-9_-]{6,40}\.(jpg|png|webp))$/;
+const baseTitle = (p) => p.replace(/^.*--/, "").replace(/\.[a-z]+$/, "").replace(/(^|-)([a-z])/g, (m, a, b) => a + b.toUpperCase());
+export async function getCatalog() {
+  try {
+    const c = await getStore({ name: "site", consistency: "strong" }).get("content", { type: "json" });
+    const list = c?.content?.store;
+    if (Array.isArray(list) && list.length) {
+      const out = {};
+      for (const x of list) if (x && OK_PATH.test(x.p || "")) out[x.p] = String(x.title || "").trim().slice(0, 80) || PRODUCTS[x.p] || baseTitle(x.p);
+      if (Object.keys(out).length) return out;
+    }
+  } catch {}
+  return PRODUCTS;
+}
+
 export const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 
@@ -56,11 +72,12 @@ export async function checkCart(body) {
   const items = Array.isArray(body?.items) ? body.items : [];
   const zone = ZONES[body?.zone] ? body.zone : null;
   if (!items.length || items.length > 30) throw new Error("Panier vide ou invalide.");
+  const CAT = await getCatalog();
   if (!zone) throw new Error("Zone de livraison invalide.");
   const merged = {};
   for (const it of items) {
     const q = Number(it?.q);
-    if (!PRODUCTS[it?.p] || !FORMATS[it?.f] || !Number.isInteger(q) || q < 1 || q > FORMATS[it.f].edition) throw new Error("Article invalide.");
+    if (!CAT[it?.p] || !FORMATS[it?.f] || !Number.isInteger(q) || q < 1 || q > FORMATS[it.f].edition) throw new Error("Article invalide.");
     merged[key(it.p, it.f)] = (merged[key(it.p, it.f)] || 0) + q;
   }
   const store = editions();
@@ -69,8 +86,8 @@ export async function checkCart(body) {
     const [p, f] = k.split("|");
     const sold = await soldCount(store, k);
     const cap = FORMATS[f].edition;
-    if (sold + q > cap) throw new Error(sold >= cap ? `${PRODUCTS[p]} ${FORMATS[f].label} : épuisé.` : `${PRODUCTS[p]} ${FORMATS[f].label} : plus que ${cap - sold} exemplaire(s) disponible(s).`);
-    lines.push({ p, f, q, title: PRODUCTS[p], label: FORMATS[f].label, price: FORMATS[f].price });
+    if (sold + q > cap) throw new Error(sold >= cap ? `${CAT[p]} ${FORMATS[f].label} : épuisé.` : `${CAT[p]} ${FORMATS[f].label} : plus que ${cap - sold} exemplaire(s) disponible(s).`);
+    lines.push({ p, f, q, title: CAT[p], label: FORMATS[f].label, price: FORMATS[f].price });
   }
   const subtotal = lines.reduce((a, l) => a + l.price * l.q, 0);
   const shipping = ZONES[zone].price;
@@ -91,13 +108,20 @@ export async function assignNumbers(lines) {
   return out;
 }
 
-// Format court pour les métadonnées Stripe (500 caractères max) : "indexPhoto.format.quantité;…"
-const IDS = Object.keys(PRODUCTS);
-export const compactCart = (lines) => lines.map((l) => `${IDS.indexOf(l.p)}.${l.f}.${l.q}`).join(";");
-export function expandCart(s) {
-  return String(s || "").split(";").filter(Boolean).map((x) => {
-    const [i, f, q] = x.split(".");
-    const p = IDS[Number(i)];
-    return { p, f, q: Number(q), title: PRODUCTS[p], label: FORMATS[f]?.label, price: FORMATS[f]?.price };
+// Panier encodé pour les métadonnées Stripe (500 caractères max par clé → découpé en cart0, cart1…).
+const enc = (p) => p.replace(/^photos\//, "").replace(/\.jpg$/, "");
+const dec = (x) => (x.startsWith("media/") ? x : "photos/" + x + ".jpg");
+export function cartMeta(lines) {
+  const s = lines.map((l) => `${enc(l.p)}|${l.f}|${l.q}`).join(";");
+  const out = {};
+  for (let i = 0, k = 0; i < s.length; i += 480, k++) out["cart" + k] = s.slice(i, i + 480);
+  return out;
+}
+export async function expandCartMeta(meta) {
+  const s = Object.keys(meta || {}).filter((k) => /^cart\d+$/.test(k)).sort((a, b) => +a.slice(4) - +b.slice(4)).map((k) => meta[k]).join("");
+  const CAT = await getCatalog();
+  return s.split(";").filter(Boolean).map((x) => {
+    const [pp, f, q] = x.split("|"); const p = dec(pp);
+    return { p, f, q: Number(q), title: CAT[p] || PRODUCTS[p] || p, label: FORMATS[f]?.label, price: FORMATS[f]?.price };
   });
 }

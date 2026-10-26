@@ -1,6 +1,6 @@
 // Reçu de Stripe quand un paiement est confirmé : attribue les numéros et enregistre la commande.
 import crypto from "node:crypto";
-import { json, orders, assignNumbers, expandCart } from "../lib/shop.mjs";
+import { json, orders, assignNumbers, expandCartMeta } from "../lib/shop.mjs";
 
 function verify(raw, header, secret) {
   const parts = Object.fromEntries(String(header || "").split(",").map((s) => s.split("=")).filter((a) => a.length === 2).map(([k, v]) => [k.trim(), v]));
@@ -23,7 +23,7 @@ export default async (req) => {
   const store = orders();
   const id = `stripe_${s.id}`;
   if (await store.get(id)) return json({ received: true, duplicate: true });
-  const lines = await assignNumbers(expandCart(s.metadata?.cart));
+  const lines = await assignNumbers(await expandCartMeta(s.metadata));
   await store.setJSON(id, {
     provider: "stripe",
     id: s.id,

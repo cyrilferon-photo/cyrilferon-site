@@ -1,5 +1,5 @@
 // Crée une session de paiement Stripe Checkout (page de paiement hébergée par Stripe).
-import { json, checkCart, compactCart, ZONES } from "../lib/shop.mjs";
+import { json, checkCart, cartMeta, ZONES } from "../lib/shop.mjs";
 
 function form(obj, prefix = "", out = new URLSearchParams()) {
   for (const [k, v] of Object.entries(obj)) {
@@ -39,7 +39,7 @@ export default async (req) => {
     shipping_address_collection: { allowed_countries: Object.fromEntries(zone.countries.map((c, i) => [i, c])) },
     shipping_options: { 0: { shipping_rate_data: { type: "fixed_amount", display_name: zone.name[lang], fixed_amount: { amount: zone.price * 100, currency: "eur" } } } },
     phone_number_collection: { enabled: "true" },
-    metadata: { cart: compactCart(cart.lines), zone: cart.zone },
+    metadata: { ...cartMeta(cart.lines), zone: cart.zone },
     payment_intent_data: { description: cart.lines.map((l) => `${l.q} × ${l.title} ${l.label}`).join(", ") },
   });
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {

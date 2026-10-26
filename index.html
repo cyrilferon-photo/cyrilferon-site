@@ -411,6 +411,23 @@ body.bo-open .scrim{display:none}
 .danger{border:1px solid var(--safe);color:var(--safe);background:none;padding:8px 12px}
 .danger.arm{background:var(--safe);color:#fff}
 .hint{font-size:13px;color:var(--mute);margin:0}
+.sm-list{list-style:none;margin:0;padding:0;border:1px solid var(--line)}
+.sm-item{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)}
+.sm-item:last-child{border-bottom:0}
+.sm-item img{width:44px;height:55px;object-fit:cover;display:block}
+.sm-item input{font-family:var(--f-body);font-size:14px;border:1px solid var(--line);padding:7px 9px;background:var(--paper);color:var(--ink);min-width:0}
+.sm-act{display:flex;gap:4px}
+.sm-act button{border:1px solid var(--line);background:none;color:var(--ink);padding:5px 9px;font-size:12px;cursor:pointer}
+.sm-act button:hover:not(:disabled){color:var(--safe);border-color:var(--safe)}
+.sm-act button:disabled{opacity:.3;cursor:default}
+.sm-act .sm-rm{font-family:var(--f-mono)}
+.sm-pick{display:grid;gap:12px;border:1px dashed var(--line);padding:14px}
+.sm-g{display:grid;gap:6px}.sm-g .mono{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.sm-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px}
+.sm-thumbs button{padding:0;border:1px solid transparent;background:none;cursor:pointer;aspect-ratio:4/5;overflow:hidden}
+.sm-thumbs button:hover{border-color:var(--safe)}
+.sm-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.sm-pick .out{justify-self:start}
 .st-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .st-sum div{border:1px solid var(--line);padding:10px;display:grid;gap:2px}
 .st-sum strong{font-family:var(--f-display);font-stretch:80%;font-size:22px}
@@ -775,6 +792,7 @@ const DB={db:null,
 
 /* ---------- state ---------- */
 const SEED=[{"name":"Portraits","cover":"photos/portraits--steven-qdd01741-bd.jpg","photos":["photos/portraits--steven-qdd01741-bd.jpg","photos/portraits--steven-qdd01804-bd.jpg","photos/portraits--steven-qdd01848-bd.jpg","photos/portraits--steven-qdd01897-bd.jpg","photos/portraits--steven-qdd01917-bd.jpg","photos/portraits--violaine-1.jpg","photos/portraits--violaine-3.jpg","photos/portraits--violaine-7.jpg","photos/portraits--violaine-8.jpg","photos/portraits--violaine-9.jpg","photos/portraits--violaine-10.jpg","photos/portraits--whatsapp-image-2026-05-05-at-14-30-10.jpg","photos/portraits--natalia-42.jpg","photos/portraits--natalia-66.jpg"]},{"name":"Métiers","cover":"photos/metiers--danielferon-02.jpg","photos":["photos/metiers--danielferon-01.jpg","photos/metiers--danielferon-02.jpg","photos/metiers--danielferon-03.jpg","photos/metiers--pascalarlot-01.jpg","photos/metiers--pascalarlot-02.jpg","photos/metiers--pascalarlot-03.jpg","photos/metiers--pascalarlot-04.jpg","photos/metiers--pascalarlot-05.jpg","photos/metiers--pascalarlot-06.jpg","photos/metiers--pascalarlot-07.jpg","photos/metiers--pascalarlot-08.jpg","photos/metiers--patisserie-01.jpg","photos/metiers--patisserie-02.jpg","photos/metiers--patisserie-03.jpg","photos/metiers--patisserie-04.jpg","photos/metiers--patisserie-05.jpg","photos/metiers--patisserie-06.jpg","photos/metiers--patisserie-07.jpg"]},{"name":"Concerts","cover":"photos/concerts--foodrock-05.jpg","photos":["photos/concerts--concerts-01.jpg","photos/concerts--concerts-02.jpg","photos/concerts--foodrock-01.jpg","photos/concerts--foodrock-02.jpg","photos/concerts--foodrock-03.jpg","photos/concerts--foodrock-04.jpg","photos/concerts--foodrock-05.jpg","photos/concerts--foodrock-06.jpg","photos/concerts--foodrock-07.jpg","photos/concerts--hellfest-01.jpg","photos/concerts--hellfest-02.jpg","photos/concerts--hellfest-03.jpg","photos/concerts--hellfest-04.jpg","photos/concerts--hellfest-05.jpg","photos/concerts--hellfest-06.jpg","photos/concerts--sun-01.jpg","photos/concerts--sun-02.jpg","photos/concerts--sun-03.jpg","photos/concerts--sun-04.jpg"]},{"name":"Voyages","cover":"photos/voyages--newyorkcity-12.jpg","photos":["photos/voyages--miami-01.jpg","photos/voyages--miami-02.jpg","photos/voyages--miami-03.jpg","photos/voyages--miami-04.jpg","photos/voyages--newyorkcity-01.jpg","photos/voyages--newyorkcity-02.jpg","photos/voyages--newyorkcity-03.jpg","photos/voyages--newyorkcity-04.jpg","photos/voyages--newyorkcity-05.jpg","photos/voyages--newyorkcity-06.jpg","photos/voyages--newyorkcity-07.jpg","photos/voyages--newyorkcity-08.jpg","photos/voyages--newyorkcity-09.jpg","photos/voyages--newyorkcity-10.jpg","photos/voyages--newyorkcity-11.jpg","photos/voyages--newyorkcity-12.jpg","photos/voyages--newyorkcity-13.jpg","photos/voyages--newyorkcity-14.jpg","photos/voyages--newyorkcity-15.jpg","photos/voyages--newyorkcity-16.jpg","photos/voyages--newyorkcity-17.jpg","photos/voyages--newyorkcity-18.jpg","photos/voyages--newyorkcity-19.jpg","photos/voyages--newyorkcity-20.jpg","photos/voyages--newyorkcity-21.jpg","photos/voyages--newyorkcity-22.jpg","photos/voyages--newyorkcity-23.jpg","photos/voyages--newyorkcity-24.jpg","photos/voyages--newyorkcity-25.jpg","photos/voyages--newyorkcity-26.jpg","photos/voyages--newyorkcity-27.jpg","photos/voyages--newyorkcity-28.jpg","photos/voyages--newyorkcity-29.jpg"]},{"name":"Nu artistique","cover":"photos/nu-artistique--cerizvodka-02.jpg","photos":["photos/nu-artistique--adeline-01.jpg","photos/nu-artistique--adeline-02.jpg","photos/nu-artistique--adeline-03.jpg","photos/nu-artistique--adeline-04.jpg","photos/nu-artistique--adeline-05.jpg","photos/nu-artistique--adeline-06.jpg","photos/nu-artistique--cerizvodka-01.jpg","photos/nu-artistique--cerizvodka-02.jpg","photos/nu-artistique--cerizvodka-03.jpg","photos/nu-artistique--cerizvodka-04.jpg","photos/nu-artistique--cerizvodka-05.jpg","photos/nu-artistique--cerizvodka-06.jpg","photos/nu-artistique--cerizvodka-07.jpg","photos/nu-artistique--cerizvodka-08.jpg","photos/nu-artistique--cerizvodka-09.jpg","photos/nu-artistique--cerizvodka-10.jpg","photos/nu-artistique--cerizvodka-11.jpg","photos/nu-artistique--cerizvodka-12-v2.jpg","photos/nu-artistique--cerizvodka-13.jpg","photos/nu-artistique--cerizvodka-14.jpg","photos/nu-artistique--cerizvodka-15.jpg","photos/nu-artistique--cerizvodka-16.jpg","photos/nu-artistique--cerizvodka-17.jpg","photos/nu-artistique--cerizvodka-18.jpg","photos/nu-artistique--cerizvodka-19.jpg","photos/nu-artistique--cerizvodka-20.jpg","photos/nu-artistique--jess-01.jpg","photos/nu-artistique--jess-02.jpg","photos/nu-artistique--jess-03.jpg","photos/nu-artistique--jess-04.jpg","photos/nu-artistique--sloane-01.jpg","photos/nu-artistique--sloane-02.jpg","photos/nu-artistique--sloane-03.jpg","photos/nu-artistique--sloane-04.jpg","photos/nu-artistique--sloane-05.jpg","photos/nu-artistique--sloane-06-v3.jpg","photos/nu-artistique--sloane-07.jpg","photos/nu-artistique--sloane-08.jpg","photos/nu-artistique--sloane-09-v2.jpg","photos/nu-artistique--sloane-10.jpg","photos/nu-artistique--sloane-11.jpg","photos/nu-artistique--sloane-12.jpg","photos/nu-artistique--sloane-13.jpg","photos/nu-artistique--sloane-14.jpg","photos/nu-artistique--sloane-15.jpg"]}];
+const STORE_SEED=[{"p": "photos/nu-artistique--sloane-06-v3.jpg", "title": "OFF - Sloane"}, {"p": "photos/nu-artistique--cerizvodka-15.jpg", "title": "FLOWERS - Cerizvodka"}, {"p": "photos/nu-artistique--jess-04.jpg", "title": "LILY - Jess"}, {"p": "photos/nu-artistique--cerizvodka-07.jpg", "title": "MIRROR - Cerizvodka"}, {"p": "photos/nu-artistique--sloane-09-v2.jpg", "title": "FREEDOM - Sloane"}, {"p": "photos/nu-artistique--cerizvodka-12-v2.jpg", "title": "ROSE - Cerizvodka"}, {"p": "photos/voyages--newyorkcity-24.jpg", "title": "OCULUS"}, {"p": "photos/voyages--newyorkcity-08.jpg", "title": "THUNDERBOLT"}, {"p": "photos/concerts--sun-01.jpg", "title": "SUN"}];
 const SEED_HERO="photos/concerts--concerts-01.jpg";
 const urls={};
 SEED.forEach(g=>g.photos.forEach(p=>urls[p]=p));
@@ -786,7 +804,7 @@ const DEFAULT=()=>({
   bioEn:"Freezing time\nto tell your story.\n\nHi, I’m Cyril. A graphic designer by trade and founder of the video agency Quatre Deux Deux since 2019, I see the image as a language in its own right. My days move between the precision of 3D, the narrative of video and the poetry of photography, with one common thread: storytelling.\n\nTo me, an image is never gratuitous; it tells a story, it freezes an emotion. That is what fascinates me about photography: the ability to capture a suspended moment. The instant I press the shutter, the world stops. Time stands still, leaving room only for the pure narrative of the image.\n\nThis approach took root with my father’s film camera, which taught me patience and the “magic” of the developer. Today, my strength lies in adapting the medium to the idea: I move with the same rigour between the organic authenticity of film and the surgical precision of digital. My quest remains the same: to seize that fragment of still time and turn it into a powerful visual story.",
   bio:"Suspendre le temps\npour raconter votre histoire.\n\nSalut, moi c’est Cyril. Graphiste de métier et fondateur de l’agence vidéo Quatre Deux Deux depuis 2019, je vois l'image comme un langage à part entière. Mon quotidien oscille entre la précision de la 3D, la narration vidéo et la poésie de la photographie, avec un fil conducteur unique : le storytelling.\n\nPour moi, une image n'est jamais gratuite ; elle raconte une histoire, fige une émotion. C’est ce qui me fascine dans la photographie : cette capacité à capturer un instant suspendu. Dès l'instant où je déclenche, le monde s’arrête. Le temps se fige pour ne laisser place qu’à la narration pure de l'image.\n\nCette approche a pris racine avec le boîtier argentique de mon père, qui m'a appris la patience et la \"magie\" du révélateur. Aujourd'hui, ma force réside dans l'adaptation du médium à l'idée : je navigue avec la même exigence entre l'authenticité organique de l'argentique et la précision chirurgicale du numérique. Ma quête reste la même : saisir ce fragment de temps immobile pour en faire un récit visuel puissant.",
   prints:"Chaque photo du site peut être tirée sur papier d'art, en édition numérotée et signée. Indiquez la photo et le format souhaités, je vous réponds avec un devis.",
-  hero:SEED_HERO, open:null, meta:{},
+  hero:SEED_HERO, open:null, meta:{}, store:JSON.parse(JSON.stringify(STORE_SEED)),
   galleries:SEED.map(g=>({id:uid(),name:g.name,intro:(GAL_INTRO[g.name]||{}).fr||"",introEn:(GAL_INTRO[g.name]||{}).en||"",photos:[...g.photos],cover:g.cover}))
 });
 let S=DEFAULT(); S.open=null;
@@ -804,7 +822,7 @@ function frameHTML(id,label,i){
 }
 
 /* ---------- public site ---------- */
-function renderSite(){
+function renderSite(){if(typeof syncStore==='function'&&STORE_PHOTOS)syncStore();
   $('#tagline').textContent=LANG==='en'?(S.taglineEn||S.tagline):S.tagline;
   const total=S.galleries.reduce((a,g)=>a+g.photos.length,0);
   const sig=S.hero+'|'+S.galleries.map(g=>g.name+':'+g.photos.length).join(',');
@@ -950,9 +968,12 @@ $('.brand').addEventListener('click',e=>{e.preventDefault();if(isStore()){leaveS
 
 /* ================= STORE (prototype) ================= */
 /* titres propres à la page Tirages d’art (ailleurs, le nom de fichier reste affiché) */
-const STORE_TITLES={"photos/nu-artistique--sloane-06-v3.jpg": "OFF - Sloane", "photos/nu-artistique--cerizvodka-15.jpg": "FLOWERS - Cerizvodka", "photos/nu-artistique--jess-04.jpg": "LILY - Jess", "photos/nu-artistique--cerizvodka-07.jpg": "MIRROR - Cerizvodka", "photos/nu-artistique--sloane-09-v2.jpg": "FREEDOM - Sloane", "photos/nu-artistique--cerizvodka-12-v2.jpg": "ROSE - Cerizvodka", "photos/voyages--newyorkcity-24.jpg": "OCULUS", "photos/voyages--newyorkcity-08.jpg": "THUNDERBOLT", "photos/concerts--sun-01.jpg": "SUN"};
+/* catalogue de la boutique : modifiable dans le back office (S.store) */
+const STORE_TITLES={};
 const storeTitle=p=>STORE_TITLES[p]||photoTitle(p);
-const STORE_PHOTOS=["photos/nu-artistique--sloane-06-v3.jpg", "photos/nu-artistique--cerizvodka-15.jpg", "photos/nu-artistique--jess-04.jpg", "photos/nu-artistique--cerizvodka-07.jpg", "photos/nu-artistique--sloane-09-v2.jpg", "photos/nu-artistique--cerizvodka-12-v2.jpg", "photos/voyages--newyorkcity-24.jpg", "photos/voyages--newyorkcity-08.jpg", "photos/concerts--sun-01.jpg"];
+const STORE_PHOTOS=[];
+function syncStore(){if(!Array.isArray(S.store))S.store=JSON.parse(JSON.stringify(STORE_SEED));STORE_PHOTOS.length=0;for(const k in STORE_TITLES)delete STORE_TITLES[k];S.store.forEach(x=>{if(!x||!x.p)return;STORE_PHOTOS.push(x.p);if(x.title)STORE_TITLES[x.p]=x.title})}
+syncStore();
 /* Avertissement 18+ dans la boutique : désactivé (la galerie Nu artistique garde le sien) */
 const STORE_GATE=false;
 const FORMATS=[{id:'24x30',label:'24 × 30 cm',price:90},{id:'40x50',label:'40 × 50 cm',price:200},{id:'50x70',label:'50 × 70 cm',price:320}];
@@ -1307,7 +1328,7 @@ $('#contact').addEventListener('submit',async e=>{e.preventDefault();const f=e.t
   btn.disabled=false;});
 
 /* ---------- back office ---------- */
-const bo=$('#bo'),scrim=$('#scrim');let tab='gal',boSel=null,armDel=null,boPrint=null;
+const bo=$('#bo'),scrim=$('#scrim');let tab='gal',boSel=null,armDel=null,boPrint=null,boPick=false;
 let pwHash=null,pwReady=false,authed=false;
 /* site en ligne : back office protégé par le mot de passe ADMIN_PASSWORD (Netlify), modifications publiées pour tous */
 const SITE_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
@@ -1359,7 +1380,11 @@ function renderBo(){
       return `<li class="st-item"><img src="${urls[p]}" alt=""><div><div class="st-t">${esc(storeTitle(p))}</div>${fm}</div></li>`}).join('');
     const tot=STORE_PHOTOS.reduce((a,p)=>a+FORMATS.reduce((b,f)=>b+(SOLD[p+'|'+f.id]||0),0),0);
     const ca=STORE_PHOTOS.reduce((a,p)=>a+FORMATS.reduce((b,f)=>b+(SOLD[p+'|'+f.id]||0)*f.price,0),0);
-    body.innerHTML=`<h3>État des stocks</h3>
+    const mg=S.store.map((x,i)=>`<li class="sm-item"><img src="${urls[x.p]||''}" alt=""><input data-st="${i}" value="${esc(x.title||'')}" placeholder="${esc(photoTitle(x.p))}" aria-label="Titre du tirage"><span class="sm-act"><button type="button" data-sm="up" data-i="${i}" ${i?'':'disabled'} aria-label="Monter">↑</button><button type="button" data-sm="down" data-i="${i}" ${i<S.store.length-1?'':'disabled'} aria-label="Descendre">↓</button><button type="button" class="sm-rm" data-sm="rm" data-i="${i}">${armDel==='st'+i?'Confirmer':'Retirer'}</button></span></li>`).join('');
+    const pick=boPick?`<div class="sm-pick"><p class="hint">Choisissez la photo à mettre en vente :</p>${S.galleries.map(g=>{const ph=g.photos.filter(x=>has(x)&&!inStore(x));return ph.length?`<div class="sm-g"><span class="mono">${esc(g.name)}</span><div class="sm-thumbs">${ph.map(x=>`<button type="button" data-sm="add" data-p="${esc(x)}" title="${esc(photoTitle(x))}"><img src="${urls[x]}" alt="${esc(photoTitle(x))}" loading="lazy"></button>`).join('')}</div></div>`:''}).join('')}<button type="button" class="out" data-sm="cancel">Annuler</button></div>`:`<button type="button" class="addg" data-sm="open">+ Ajouter un tirage</button>`;
+    body.innerHTML=`<h3>Tirages en vente</h3><ul class="sm-list">${mg}</ul>${pick}
+      <p class="hint">Prix et formats identiques pour tous les tirages : 24 × 30 (90 €), 40 × 50 (200 €), 50 × 70 (320 €). Pensez à publier pour mettre la boutique à jour.</p>
+      <h3>État des stocks</h3>
       <div class="st-sum"><div><strong>${tot}</strong><span>tirages vendus</span></div><div><strong>${money(ca)}</strong><span>de ventes (hors port)</span></div><div><strong>${STORE_PHOTOS.length*30-tot}</strong><span>exemplaires restants</span></div></div>
       <ul class="st-list">${rows}</ul>
       <p class="hint">Édition de 30 par photo : 15 en 24 × 30, 10 en 40 × 50, 5 en 50 × 70. Orange : derniers exemplaires (alerte affichée sur la fiche). Rouge : épuisé. ${PAY_LIVE?'Chiffres en direct depuis le serveur.':'Prototype : chiffres de démonstration (les ventes réelles s’afficheront sur le site en ligne).'}</p>`;
@@ -1435,6 +1460,7 @@ $('#logout').onclick=()=>{authed=false;TOKEN='';try{sessionStorage.removeItem('c
 $('#boBody').addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.k){S[t.dataset.k]=t.value;save();renderSite();return}
+  if(t.dataset.st!==undefined){const x=S.store[+t.dataset.st];if(x){x.title=t.value.trim();save();syncStore();if(isStore())renderStore()}return}
   if(t.dataset.print){const p=t.dataset.print;S.meta[p]=Object.assign({},S.meta[p],{printUrl:t.value.trim()});save();return}
 });
 $('#boBody').addEventListener('change',e=>{
@@ -1443,6 +1469,15 @@ $('#boBody').addEventListener('change',e=>{
     const li=$('#boBody .pick[aria-current="true"] span');if(li&&el.dataset.g==='name')li.textContent=el.value}
 });
 $('#boBody').addEventListener('click',e=>{
+  const sm=e.target.closest('[data-sm]');
+  if(sm){const i=+sm.dataset.i,act=sm.dataset.sm;
+    if(act==='open'){boPick=true;renderBo();return}
+    if(act==='cancel'){boPick=false;renderBo();return}
+    if(act==='add'){S.store.push({p:sm.dataset.p,title:''});boPick=false;save();syncStore();renderSite();renderBo();const ins=document.querySelectorAll('#boBody [data-st]');const last=ins[ins.length-1];if(last)last.focus();return}
+    if(act==='up'&&i>0){[S.store[i-1],S.store[i]]=[S.store[i],S.store[i-1]]}
+    if(act==='down'&&i<S.store.length-1){[S.store[i+1],S.store[i]]=[S.store[i],S.store[i+1]]}
+    if(act==='rm'){if(armDel!=='st'+i){armDel='st'+i;renderBo();return}armDel=null;S.store.splice(i,1)}
+    save();syncStore();renderSite();if(isStore())renderStore();renderBo();return}
   const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
   const a=b.dataset.act,G=S.galleries,g=G.find(x=>x.id===boSel);
   if(a!=='delg')armDel=null;
@@ -1503,6 +1538,7 @@ else if(galFromHash()){syncFromHash(false);setTimeout(()=>glideTo($('#galerie'))
   if(saved&&saved.galleries){
     DIRTY=SITE_LIVE;
     S=Object.assign(DEFAULT(),saved);
+    if(!Array.isArray(saved.store))S.store=JSON.parse(JSON.stringify(STORE_SEED));
     S.open=(galFromHash()||{}).id||null;
     {const o='photos/nu-artistique--cerizvodka-12.jpg',n='photos/nu-artistique--cerizvodka-12-v2.jpg';S.galleries.forEach(g=>{g.photos=g.photos.map(x=>x===o?n:x);if(g.cover===o)g.cover=n});if(S.hero===o)S.hero=n;if(S.meta[o]){S.meta[n]=S.meta[o];delete S.meta[o]}}
     {const o='photos/nu-artistique--sloane-06.jpg',n='photos/nu-artistique--sloane-06-v3.jpg';S.galleries.forEach(g=>{g.photos=g.photos.map(x=>x===o?n:x);if(g.cover===o)g.cover=n});if(S.hero===o)S.hero=n;if(S.meta[o]){S.meta[n]=S.meta[o];delete S.meta[o]}}
