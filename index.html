@@ -105,7 +105,8 @@ section{padding-block:clamp(56px,8vw,110px) 0}
 .sec-head h2{font-family:var(--f-display);font-weight:800;font-stretch:70%;text-transform:uppercase;font-size:clamp(34px,5vw,64px);line-height:.95;margin:0;text-wrap:balance}
 .sec-head .mono{color:var(--mute)}
 .soc-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:28px;margin-top:22px}
-.soc-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:12px}
+.soc-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:12px}
+.soc-lbl{display:inline-flex;align-items:center;gap:8px}.soc-lbl svg,.soc-lbl i{font-size:16px;width:16px;height:16px;color:var(--ink)}
 .soc-top a{color:var(--ink);text-decoration:none;transition:color .2s}.soc-top a:hover{color:var(--safe)}
 .ig-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .ig-grid a{display:block;position:relative;aspect-ratio:1;overflow:hidden;background:var(--ph-a,#151515)}
@@ -623,7 +624,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
       <div class="sec-head"><i class="cx bl"></i><i class="cx br"></i><h2 data-i18n="followH">Suivre mon travail</h2><span class="mono">Instagram · UGLY</span></div>
       <div class="soc-grid">
         <div class="soc-block">
-          <div class="soc-top mono"><span>Instagram</span><a href="https://www.instagram.com/araak" target="_blank" rel="noopener">@araak →</a></div>
+          <div class="soc-top mono"><span class="soc-lbl"><i class="fa-brands fa-instagram" aria-hidden="true"></i>Instagram</span><a href="https://www.instagram.com/araak" target="_blank" rel="noopener">@araak →</a></div>
           <ul class="ig-grid" id="igGrid"></ul>
         </div>
         <div class="soc-block">
