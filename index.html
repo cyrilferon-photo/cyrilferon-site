@@ -375,6 +375,8 @@ body.bo-open .scrim{display:none}
 .bo-pub .mono{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .bo-pub .mono.dirty{color:#f0a04b}
 .bo-pub .send{padding:9px 16px}
+.pub-btns{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.pub-btns .out{padding:9px 14px}
 .bo-pub .send:disabled{opacity:.45;cursor:default}
 .tabs{display:flex;gap:4px;flex-wrap:wrap}
 .tabs .tab-r{margin-left:auto}
@@ -751,7 +753,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
 <aside class="bo" id="bo" aria-label="Back office" aria-hidden="true">
   <div class="bo-head">
     <div class="top-row"><h2>Back office</h2><span style="display:flex;gap:8px"><button type="button" class="out" id="logout" hidden>Se déconnecter</button><button class="x" id="closeBo" type="button" aria-label="Fermer le back office">×</button></span></div>
-    <div class="bo-pub" id="boPub"><span class="mono" id="pubState"></span><button type="button" class="send" id="pubBtn">Publier sur le site</button></div>
+    <div class="bo-pub" id="boPub"><span class="mono" id="pubState"></span><span class="pub-btns"><button type="button" class="out" id="sendClaude" hidden>Envoyer mes modifications à Claude</button><button type="button" class="send" id="pubBtn">Publier sur le site</button></span></div>
     <div class="tabs" id="tabs" role="tablist">
       <button type="button" role="tab" data-tab="gal" aria-selected="true">Galeries</button>
       <button type="button" role="tab" data-tab="txt" aria-selected="false">Textes</button>
@@ -1674,6 +1676,17 @@ async function publish(){
   }
 }
 $('#pubBtn').onclick=publish;
+/* prototype (claude.ai) : envoie l'état du back office et les photos ajoutées à Claude, pour les intégrer définitivement */
+let CL_DB=null,CL_AS=null;
+if(!SITE_LIVE&&window.claude&&window.claude.use){Promise.all([window.claude.use('db'),window.claude.use('assets')]).then(([d,a])=>{CL_DB=d;CL_AS=a;if(d){$('#sendClaude').hidden=false;$('#pubBtn').hidden=true}}).catch(()=>{})}
+$('#sendClaude').onclick=async()=>{const b=$('#sendClaude'),st=$('#pubState');if(!CL_DB)return;b.disabled=true;
+  try{const local=[...new Set(S.galleries.flatMap(g=>g.photos))].filter(id=>urls[id]&&urls[id].startsWith('blob:'));const map={};let n=0;
+    for(const id of local){st.textContent=`Envoi des photos ${++n} / ${local.length}…`;if(!CL_AS)break;const blob=await fetch(urls[id]).then(r=>r.blob());const r=await CL_AS.upload(blob);map[id]=r.id}
+    st.textContent='Envoi des réglages…';
+    await CL_DB.doc('exports/latest').set({state:JSON.stringify(Object.assign({},S,{open:null})),photos:map,at:new Date().toISOString(),local:local.length});
+    st.className='mono';st.textContent='Envoyé ✓ · dites-le à Claude dans la conversation';
+  }catch(e){st.textContent='Envoi impossible ('+(e&&(e.code||e.message)||'erreur')+').'}
+  b.disabled=false};
 pubUI();
 })();
 </script>
