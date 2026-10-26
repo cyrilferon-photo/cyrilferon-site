@@ -23,8 +23,8 @@ export default async (req) => {
   const params = form({
     mode: "payment",
     locale: lang,
-    success_url: `${origin}/?commande=ok#boutique`,
-    cancel_url: `${origin}/#boutique`,
+    success_url: `${origin}/store?commande=ok`,
+    cancel_url: `${origin}/store`,
     line_items: Object.fromEntries(cart.lines.map((l, i) => [i, {
       quantity: l.q,
       price_data: {

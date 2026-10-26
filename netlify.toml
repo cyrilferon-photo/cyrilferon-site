@@ -6,3 +6,13 @@
   for = "/rooms/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Boutique à l'adresse /store (même page, ouverte sur les tirages)
+[[redirects]]
+  from = "/store/"
+  to = "/store"
+  status = 301
+[[redirects]]
+  from = "/store"
+  to = "/index.html"
+  status = 200

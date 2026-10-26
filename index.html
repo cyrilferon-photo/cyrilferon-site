@@ -892,16 +892,20 @@ function openGallery(id,{push=true,scroll=true}={}){
   const g=S.galleries.find(x=>x.id===id);if(!g)return;
   if(isStore())showStore(false);
   S.open=id;renderSite();
-  if(push&&location.hash!=='#'+slugOf(g)){try{history.pushState({g:slugOf(g)},'','#'+slugOf(g))}catch(_){location.hash=slugOf(g)}}
+  if(push&&(location.hash!=='#'+slugOf(g)||location.pathname===STORE_PATH)){try{history.pushState({g:slugOf(g)},'',(USE_PATH?'/':'')+'#'+slugOf(g))}catch(_){location.hash=slugOf(g)}}
   if(scroll)glideTo($('#galerie'));
 }
 function syncFromHash(scroll){
-  if(location.hash==='#boutique'){if(!isStore()){showStore(true);scrollTo(0,0)}return}
+  if(USE_PATH&&location.hash==='#boutique'){try{history.replaceState(null,'',STORE_PATH)}catch(_){}}
+  if(atStore()){if(!isStore()){showStore(true);scrollTo(0,0)}return}
   if(isStore())showStore(false);
   const g=galFromHash();
   if(g){if(S.open!==g.id){S.open=g.id;renderSite()}if(scroll)glideTo($('#galerie'));return}
   if(S.open){S.open=null;renderSite();if(scroll)glideTo($('#galeries'))}
 }
+/* boutique : adresse /store sur le site en ligne, #boutique sur le prototype */
+const USE_PATH=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname),STORE_PATH='/store';
+function atStore(){return location.hash==='#boutique'||(USE_PATH&&location.pathname===STORE_PATH)}
 addEventListener('popstate',()=>syncFromHash(true));
 addEventListener('hashchange',()=>syncFromHash(true));
 /* age check shared by the gallery and the shop: returns an error key, or '' if 18+ */
@@ -1010,10 +1014,10 @@ const saveCart=()=>{try{localStorage.setItem('cf-cart',JSON.stringify(CART))}cat
 const isStore=()=>document.body.classList.contains('is-store');
 function showStore(on){document.body.classList.toggle('is-store',on);$('#boutique').hidden=!on;if(on)renderStore()}
 function enterStore(push=true){
-  if(push&&location.hash!=='#boutique'){try{history.pushState({s:1},'','#boutique')}catch(_){location.hash='boutique'}}
+  if(push&&!atStore()){try{history.pushState({s:1},'',USE_PATH?STORE_PATH:'#boutique')}catch(_){location.hash='boutique'}}
   showStore(true);scrollTo(0,0);
 }
-function leaveStore(){if(!isStore())return;showStore(false);if(location.hash==='#boutique'){try{history.pushState({},'',location.pathname+location.search)}catch(_){location.hash=''}}}
+function leaveStore(){if(!isStore())return;showStore(false);if(atStore()){try{history.pushState({},'',USE_PATH?'/':location.pathname+location.search)}catch(_){location.hash=''}}}
 function renderStore(){
   const prods=STORE_PHOTOS.filter(has);
   const gals=[...new Set(prods.map(p=>galOf(p)).filter(Boolean))];
@@ -1305,7 +1309,7 @@ $('#lbImg').addEventListener('load',placeLbLogo);addEventListener('resize',()=>{
 function showLb(){const p=lbList[lbI];$('#lbLogo').classList.remove('on');$('#lbImg').src=lbSrc(p);if($('#lbImg').complete)requestAnimationFrame(placeLbLogo);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
   $('#lbTitle').textContent=galName(galOf(p))||'';
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
-  const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?'#boutique':(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
+  const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?(USE_PATH?STORE_PATH:'#boutique'):(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
 /* photos sans bouton « Demander un tirage » (ex. photo exposée, pas d'édition prévue) */
 const NO_PRINT=new Set(['photos/nu-artistique--sloane-10.jpg','photos/nu-artistique--cerizvodka-03.jpg']);
 function noPrint(p){const m=S.meta&&S.meta[p];if(m&&typeof m.noPrint==='boolean')return m.noPrint;return NO_PRINT.has(p)}
@@ -1567,7 +1571,9 @@ async function addFiles(list){
 
 /* ---------- boot ---------- */
 applyLang();
-if(location.hash==='#boutique'){showStore(true);if('scrollRestoration' in history)history.scrollRestoration='manual';const top0=()=>scrollTo(0,0);requestAnimationFrame(top0);setTimeout(top0,120);addEventListener('load',()=>setTimeout(top0,0),{once:true})}
+if(USE_PATH&&location.hash==='#boutique'){try{history.replaceState(null,'',STORE_PATH)}catch(_){}}
+if(USE_PATH)$('#storeLink').setAttribute('href',STORE_PATH);
+if(atStore()){showStore(true);if('scrollRestoration' in history)history.scrollRestoration='manual';const top0=()=>scrollTo(0,0);requestAnimationFrame(top0);setTimeout(top0,120);addEventListener('load',()=>setTimeout(top0,0),{once:true})}
 else if(galFromHash()){syncFromHash(false);setTimeout(()=>glideTo($('#galerie')),350)}
 (async()=>{
   await DB.open();
