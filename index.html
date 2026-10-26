@@ -376,7 +376,8 @@ body.bo-open .scrim{display:none}
 .bo-pub .mono.dirty{color:#f0a04b}
 .bo-pub .send{padding:9px 16px}
 .bo-pub .send:disabled{opacity:.45;cursor:default}
-.tabs{display:flex;gap:4px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs .tab-r{margin-left:auto}
 .tabs button{border:1px solid var(--line);background:none;padding:6px 12px;border-radius:0;font-size:14px}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .bo-body{overflow:auto;padding:16px max(18px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) 18px;display:grid;gap:18px;align-content:start}
@@ -421,6 +422,15 @@ body.bo-open .scrim{display:none}
 .sm-act button:hover:not(:disabled){color:var(--safe);border-color:var(--safe)}
 .sm-act button:disabled{opacity:.3;cursor:default}
 .sm-act .sm-rm{font-family:var(--f-mono)}
+.pr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pr-f{display:grid;gap:4px;border:1px solid var(--line);padding:8px 10px;font-size:12px;color:var(--mute)}
+.pr-in{display:flex;align-items:center;gap:6px;color:var(--ink);font-size:14px}
+.pr-in input{width:100%;min-width:0;font-family:var(--f-body);font-size:16px;border:1px solid var(--line);padding:6px 8px;background:var(--paper);color:var(--ink)}
+.sm-item.open{grid-template-columns:44px 1fr auto}
+.sm-prices{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:6px}
+.sm-prices .hint{grid-column:1/-1;margin:0}
+.sm-act .own{border-color:var(--safe);color:var(--safe)}
+@media (max-width:600px){.pr-grid,.sm-prices{grid-template-columns:1fr}.sm-item{grid-template-columns:44px 1fr}.sm-act{grid-column:1/-1}}
 .sm-pick{display:grid;gap:12px;border:1px dashed var(--line);padding:14px}
 .sm-g{display:grid;gap:6px}.sm-g .mono{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
 .sm-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px}
@@ -745,6 +755,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
       <button type="button" role="tab" data-tab="gal" aria-selected="true">Galeries</button>
       <button type="button" role="tab" data-tab="txt" aria-selected="false">Textes</button>
       <button type="button" role="tab" data-tab="shop" aria-selected="false">Boutique</button>
+      <button type="button" role="tab" data-tab="stock" aria-selected="false" class="tab-r">Stocks</button>
     </div>
   </div>
   <div class="bo-body" id="boBody"></div>
@@ -804,7 +815,7 @@ const DEFAULT=()=>({
   bioEn:"Freezing time\nto tell your story.\n\nHi, I’m Cyril. A graphic designer by trade and founder of the video agency Quatre Deux Deux since 2019, I see the image as a language in its own right. My days move between the precision of 3D, the narrative of video and the poetry of photography, with one common thread: storytelling.\n\nTo me, an image is never gratuitous; it tells a story, it freezes an emotion. That is what fascinates me about photography: the ability to capture a suspended moment. The instant I press the shutter, the world stops. Time stands still, leaving room only for the pure narrative of the image.\n\nThis approach took root with my father’s film camera, which taught me patience and the “magic” of the developer. Today, my strength lies in adapting the medium to the idea: I move with the same rigour between the organic authenticity of film and the surgical precision of digital. My quest remains the same: to seize that fragment of still time and turn it into a powerful visual story.",
   bio:"Suspendre le temps\npour raconter votre histoire.\n\nSalut, moi c’est Cyril. Graphiste de métier et fondateur de l’agence vidéo Quatre Deux Deux depuis 2019, je vois l'image comme un langage à part entière. Mon quotidien oscille entre la précision de la 3D, la narration vidéo et la poésie de la photographie, avec un fil conducteur unique : le storytelling.\n\nPour moi, une image n'est jamais gratuite ; elle raconte une histoire, fige une émotion. C’est ce qui me fascine dans la photographie : cette capacité à capturer un instant suspendu. Dès l'instant où je déclenche, le monde s’arrête. Le temps se fige pour ne laisser place qu’à la narration pure de l'image.\n\nCette approche a pris racine avec le boîtier argentique de mon père, qui m'a appris la patience et la \"magie\" du révélateur. Aujourd'hui, ma force réside dans l'adaptation du médium à l'idée : je navigue avec la même exigence entre l'authenticité organique de l'argentique et la précision chirurgicale du numérique. Ma quête reste la même : saisir ce fragment de temps immobile pour en faire un récit visuel puissant.",
   prints:"Chaque photo du site peut être tirée sur papier d'art, en édition numérotée et signée. Indiquez la photo et le format souhaités, je vous réponds avec un devis.",
-  hero:SEED_HERO, open:null, meta:{}, store:JSON.parse(JSON.stringify(STORE_SEED)),
+  hero:SEED_HERO, open:null, meta:{}, store:JSON.parse(JSON.stringify(STORE_SEED)), prices:{"24x30":90,"40x50":200,"50x70":320},
   galleries:SEED.map(g=>({id:uid(),name:g.name,intro:(GAL_INTRO[g.name]||{}).fr||"",introEn:(GAL_INTRO[g.name]||{}).en||"",photos:[...g.photos],cover:g.cover}))
 });
 let S=DEFAULT(); S.open=null;
@@ -979,6 +990,9 @@ const STORE_GATE=false;
 const FORMATS=[{id:'24x30',label:'24 × 30 cm',price:90},{id:'40x50',label:'40 × 50 cm',price:200},{id:'50x70',label:'50 × 70 cm',price:320}];
 const money=n=>new Intl.NumberFormat(LANG==='fr'?'fr-FR':'en-GB',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
 const inStore=p=>STORE_PHOTOS.includes(p);
+/* prix : par défaut pour tous les tirages (S.prices), ou propres à un tirage (S.store[i].prices) */
+const priceOf=(p,f)=>{const it=(S.store||[]).find(x=>x.p===p),o=it&&it.prices&&+it.prices[f];if(o>0)return o;const d=S.prices&&+S.prices[f];return d>0?d:(FORMATS.find(x=>x.id===f)||FORMATS[0]).price};
+const fromPrice=p=>Math.min(...FORMATS.map(f=>priceOf(p,f.id)));
 let storeFilter='all',pmPhoto=null,pmFmt=FORMATS[0].id;
 let ZONE='eu';try{const z=localStorage.getItem('cf-zone');if(z==='eu'||z==='world')ZONE=z}catch(_){}
 let CART=[];try{CART=JSON.parse(localStorage.getItem('cf-cart')||'[]')||[]}catch(_){CART=[]}
@@ -1006,7 +1020,7 @@ function renderStore(){
       <p class="nu-small">${t('gPriv')}</p></div>`:'';
   $('#storeGrid').classList.toggle('veiled',veil);$('#storeGrid').setAttribute('aria-hidden',String(veil));
   $('#storeGrid').innerHTML=list.map(p=>`<button type="button" class="pcard" data-p="${esc(p)}"><span class="pimg"${LQIP[p]?` style="--lq:url('${LQIP[p]}')"`:''}><img src="${urls[p]}" alt="${esc(storeTitle(p))}" loading="lazy"></span>
-    <span class="pmeta"><span class="pname">${esc(storeTitle(p))}</span><span class="pfrom">${esc(t('from'))} ${money(FORMATS[0].price)}</span></span><span class="pgal">${esc(galName(galOf(p)))}</span></button>`).join('');
+    <span class="pmeta"><span class="pname">${esc(storeTitle(p))}</span><span class="pfrom">${esc(t('from'))} ${money(fromPrice(p))}</span></span><span class="pgal">${esc(galName(galOf(p)))}</span></button>`).join('');
   $('#storeGrid').querySelectorAll('img').forEach(i=>{if(i.complete&&i.naturalWidth)i.classList.add('ld')});
 }
 $('#storeGrid').addEventListener('load',e=>{if(e.target.tagName==='IMG')e.target.classList.add('ld')},true);
@@ -1027,8 +1041,8 @@ function openProduct(p,fmt){
   renderPm();$('#pm').hidden=false;document.body.style.overflow='hidden';$('#pmClose').focus();
 }
 function renderPm(){
-  $('#pmFormats').innerHTML=FORMATS.map(f=>{const out=leftOf(pmPhoto,f.id)<=0;return `<label class="fopt${out?' out':''}"><span><input type="radio" name="pmf" value="${f.id}"${f.id===pmFmt?' checked':''}><s class="fl">${f.label}</s>${out?`<em class="fout">${esc(t('outTag'))}</em>`:''}</span><span class="fp"><s>${money(f.price)}</s></span></label>`}).join('');
-  $('#pmPrice').textContent=money(FORMATS.find(f=>f.id===pmFmt).price);pmShipTxt();
+  $('#pmFormats').innerHTML=FORMATS.map(f=>{const out=leftOf(pmPhoto,f.id)<=0;return `<label class="fopt${out?' out':''}"><span><input type="radio" name="pmf" value="${f.id}"${f.id===pmFmt?' checked':''}><s class="fl">${f.label}</s>${out?`<em class="fout">${esc(t('outTag'))}</em>`:''}</span><span class="fp"><s>${money(priceOf(pmPhoto,f.id))}</s></span></label>`}).join('');
+  $('#pmPrice').textContent=money(priceOf(pmPhoto,pmFmt));pmShipTxt();
 }
 const EDITIONS={'24x30':15,'40x50':10,'50x70':5},HURRY={'24x30':5,'40x50':4,'50x70':2};let SOLD={'photos/nu-artistique--cerizvodka-15.jpg|24x30':1,'photos/nu-artistique--cerizvodka-12-v2.jpg|24x30':1};
 const leftOf=(p,f)=>Math.max(0,EDITIONS[f]-(SOLD[p+'|'+f]||0));
@@ -1118,7 +1132,7 @@ async function showPmView(){
 }
 $('#pm .pm-views').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;pmView=b.dataset.v;showPmView()});
 
-$('#pmFormats').addEventListener('change',e=>{if(e.target.name==='pmf'){pmFmt=e.target.value;$('#pmPrice').textContent=money(FORMATS.find(f=>f.id===pmFmt).price);pmShipTxt();if(pmView==='room')showPmView()}});
+$('#pmFormats').addEventListener('change',e=>{if(e.target.name==='pmf'){pmFmt=e.target.value;$('#pmPrice').textContent=money(priceOf(pmPhoto,pmFmt));pmShipTxt();if(pmView==='room')showPmView()}});
 $('#pmClose').onclick=closePm;
 $('#pm').addEventListener('click',e=>{if(e.target===e.currentTarget)closePm()});
 $('#pmAdd').onclick=()=>{
@@ -1136,12 +1150,12 @@ function openCart(){renderCart();cart.classList.add('open');cart.setAttribute('a
 function closeCart(){cart.classList.remove('open');cart.setAttribute('aria-hidden','true');cartScrim.classList.remove('on')}
 function renderCart(){
   CART=CART.filter(c=>urls[c.p]&&FORMATS.some(f=>f.id===c.f)&&c.q>0);
-  const n=CART.reduce((a,c)=>a+c.q,0),tot=CART.reduce((a,c)=>a+c.q*FORMATS.find(f=>f.id===c.f).price,0);
+  const n=CART.reduce((a,c)=>a+c.q,0),tot=CART.reduce((a,c)=>a+c.q*priceOf(c.p,c.f),0);
   $('#cartN').hidden=!n;$('#cartN').textContent=n;
   $('#cartBody').innerHTML=n?CART.map((c,i)=>{const f=FORMATS.find(x=>x.id===c.f);return `<div class="citem"><img src="${urls[c.p]}" alt=""${STORE_GATE&&isNuGal(galOf(c.p))&&!nuOk?' style="filter:blur(8px)"':''}>
     <div><div class="ct">${esc(storeTitle(c.p))}</div><div class="cf">${f.label}</div>
     <div class="cq"><button type="button" data-q="-1" data-i="${i}" aria-label="${esc(t('qtyMinus'))}">−</button><span>${c.q}</span><button type="button" data-q="1" data-i="${i}" aria-label="${esc(t('qtyPlus'))}">+</button></div></div>
-    <div class="cp">${money(f.price*c.q)}<button type="button" class="crm" data-rm="${i}">${esc(t('remove'))}</button></div></div>`}).join(''):`<p class="cart-empty">${esc(t('cartEmpty'))}</p>`;
+    <div class="cp">${money(priceOf(c.p,c.f)*c.q)}<button type="button" class="crm" data-rm="${i}">${esc(t('remove'))}</button></div></div>`}).join(''):`<p class="cart-empty">${esc(t('cartEmpty'))}</p>`;
   $('#cartFoot').hidden=!n;$('#cartTotal').textContent=money(tot);
   const zs=$('#cartZone');zs.options[0].textContent=t('zoneEu');zs.options[1].textContent=t('zoneWorld');zs.value=ZONE;
   const sh=ZONE==='world'?35:15;$('#cartShipP').textContent=money(sh);$('#cartGrand').textContent=money(tot+sh);
@@ -1328,7 +1342,7 @@ $('#contact').addEventListener('submit',async e=>{e.preventDefault();const f=e.t
   btn.disabled=false;});
 
 /* ---------- back office ---------- */
-const bo=$('#bo'),scrim=$('#scrim');let tab='gal',boSel=null,armDel=null,boPrint=null,boPick=false;
+const bo=$('#bo'),scrim=$('#scrim');let tab='gal',boSel=null,armDel=null,boPrint=null,boPick=false,boPrice=null;
 let pwHash=null,pwReady=false,authed=false;
 /* site en ligne : back office protégé par le mot de passe ADMIN_PASSWORD (Netlify), modifications publiées pour tous */
 const SITE_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
@@ -1352,7 +1366,7 @@ if('ResizeObserver' in window)new ResizeObserver(()=>{if(bo.classList.contains('
 function openBo(){if(!BO_ENABLED)return;setHdrH();document.body.classList.add('bo-open');bo.classList.add('open');bo.setAttribute('aria-hidden','false');scrim.classList.add('on');renderBo();($('#lg-pw')||$('#closeBo')).focus()}
 function closeBo(){document.body.classList.remove('bo-open');bo.classList.remove('open');bo.setAttribute('aria-hidden','true');scrim.classList.remove('on');$('#openBo').focus()}
 $('#openBo').onclick=openBo;$('#closeBo').onclick=closeBo;scrim.onclick=closeBo;
-document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;document.querySelectorAll('.tabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));renderBo()});
+document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;document.querySelectorAll('.tabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));renderBo();$('#boBody').scrollTop=0});
 
 function renderBo(){
   const body=$('#boBody');
@@ -1373,21 +1387,29 @@ function renderBo(){
         <p class="status" id="lg-msg" role="status"></p></form>`;
     return;
   }
-  if(tab==='shop'){
+  if(tab==='stock'){
     const rows=STORE_PHOTOS.map(p=>{
       const fm=FORMATS.map(f=>{const sold=SOLD[p+'|'+f.id]||0,cap=EDITIONS[f.id],left=Math.max(0,cap-sold),st=left<=0?'out':left<=HURRY[f.id]?'low':'ok';
         return `<div class="st-row st-${st}"><span class="st-f">${f.label}</span><span class="st-bar"><i style="width:${Math.round(sold/cap*100)}%"></i></span><span class="st-n">${sold} / ${cap}</span><span class="st-l">${left<=0?'Épuisé':left+' restant'+(left>1?'s':'')}</span></div>`}).join('');
       return `<li class="st-item"><img src="${urls[p]}" alt=""><div><div class="st-t">${esc(storeTitle(p))}</div>${fm}</div></li>`}).join('');
     const tot=STORE_PHOTOS.reduce((a,p)=>a+FORMATS.reduce((b,f)=>b+(SOLD[p+'|'+f.id]||0),0),0);
-    const ca=STORE_PHOTOS.reduce((a,p)=>a+FORMATS.reduce((b,f)=>b+(SOLD[p+'|'+f.id]||0)*f.price,0),0);
-    const mg=S.store.map((x,i)=>`<li class="sm-item"><img src="${urls[x.p]||''}" alt=""><input data-st="${i}" value="${esc(x.title||'')}" placeholder="${esc(photoTitle(x.p))}" aria-label="Titre du tirage"><span class="sm-act"><button type="button" data-sm="up" data-i="${i}" ${i?'':'disabled'} aria-label="Monter">↑</button><button type="button" data-sm="down" data-i="${i}" ${i<S.store.length-1?'':'disabled'} aria-label="Descendre">↓</button><button type="button" class="sm-rm" data-sm="rm" data-i="${i}">${armDel==='st'+i?'Confirmer':'Retirer'}</button></span></li>`).join('');
-    const pick=boPick?`<div class="sm-pick"><p class="hint">Choisissez la photo à mettre en vente :</p>${S.galleries.map(g=>{const ph=g.photos.filter(x=>has(x)&&!inStore(x));return ph.length?`<div class="sm-g"><span class="mono">${esc(g.name)}</span><div class="sm-thumbs">${ph.map(x=>`<button type="button" data-sm="add" data-p="${esc(x)}" title="${esc(photoTitle(x))}"><img src="${urls[x]}" alt="${esc(photoTitle(x))}" loading="lazy"></button>`).join('')}</div></div>`:''}).join('')}<button type="button" class="out" data-sm="cancel">Annuler</button></div>`:`<button type="button" class="addg" data-sm="open">+ Ajouter un tirage</button>`;
-    body.innerHTML=`<h3>Tirages en vente</h3><ul class="sm-list">${mg}</ul>${pick}
-      <p class="hint">Prix et formats identiques pour tous les tirages : 24 × 30 (90 €), 40 × 50 (200 €), 50 × 70 (320 €). Pensez à publier pour mettre la boutique à jour.</p>
-      <h3>État des stocks</h3>
-      <div class="st-sum"><div><strong>${tot}</strong><span>tirages vendus</span></div><div><strong>${money(ca)}</strong><span>de ventes (hors port)</span></div><div><strong>${STORE_PHOTOS.length*30-tot}</strong><span>exemplaires restants</span></div></div>
+    const ca=STORE_PHOTOS.reduce((a,p)=>a+FORMATS.reduce((b,f)=>b+(SOLD[p+'|'+f.id]||0)*priceOf(p,f.id),0),0);
+    body.innerHTML=`<h3>État des stocks</h3>
+      <div class="st-sum"><div><strong>${tot}</strong><span>tirages vendus</span></div><div><strong>${money(ca)}</strong><span>de ventes (hors port, aux prix actuels)</span></div><div><strong>${STORE_PHOTOS.length*30-tot}</strong><span>exemplaires restants</span></div></div>
       <ul class="st-list">${rows}</ul>
-      <p class="hint">Édition de 30 par photo : 15 en 24 × 30, 10 en 40 × 50, 5 en 50 × 70. Orange : derniers exemplaires (alerte affichée sur la fiche). Rouge : épuisé. ${PAY_LIVE?'Chiffres en direct depuis le serveur.':'Prototype : chiffres de démonstration (les ventes réelles s’afficheront sur le site en ligne).'}</p>`;
+      <p class="hint">Édition de 30 par photo : 15 en 24 × 30, 10 en 40 × 50, 5 en 50 × 70. Orange : derniers exemplaires (alerte affichée sur la fiche). Rouge : épuisé.</p>`;
+    return;
+  }
+  if(tab==='shop'){
+    const P=S.prices||{};
+    const defs=`<div class="pr-grid">${FORMATS.map(f=>`<label class="pr-f"><span>${f.label}</span><span class="pr-in"><input type="number" min="1" step="1" inputmode="numeric" data-pdef="${f.id}" value="${+P[f.id]||f.price}"> €</span></label>`).join('')}</div>`;
+    const mg=S.store.map((x,i)=>{const own=x.prices&&FORMATS.some(f=>+x.prices[f.id]>0),open=boPrice===i;
+      const pr=open?`<div class="sm-prices">${FORMATS.map(f=>`<label class="pr-f"><span>${f.label}</span><span class="pr-in"><input type="number" min="1" step="1" inputmode="numeric" data-pown="${i}" data-f="${f.id}" value="${(x.prices&&+x.prices[f.id])||''}" placeholder="${+P[f.id]||f.price}"> €</span></label>`).join('')}<p class="hint">Laissez vide pour utiliser le prix par défaut.</p></div>`:'';
+      return `<li class="sm-item${open?' open':''}"><img src="${urls[x.p]||''}" alt=""><input data-st="${i}" value="${esc(x.title||'')}" placeholder="${esc(photoTitle(x.p))}" aria-label="Titre du tirage"><span class="sm-act"><button type="button" data-sm="price" data-i="${i}" class="${own?'own':''}" aria-expanded="${open}">${own?'Prix perso':'Prix'}</button><button type="button" data-sm="up" data-i="${i}" ${i?'':'disabled'} aria-label="Monter">↑</button><button type="button" data-sm="down" data-i="${i}" ${i<S.store.length-1?'':'disabled'} aria-label="Descendre">↓</button><button type="button" class="sm-rm" data-sm="rm" data-i="${i}">${armDel==='st'+i?'Confirmer':'Retirer'}</button></span>${pr}</li>`}).join('');
+    const pick=boPick?`<div class="sm-pick"><p class="hint">Choisissez la photo à mettre en vente :</p>${S.galleries.map(g=>{const ph=g.photos.filter(x=>has(x)&&!inStore(x));return ph.length?`<div class="sm-g"><span class="mono">${esc(g.name)}</span><div class="sm-thumbs">${ph.map(x=>`<button type="button" data-sm="add" data-p="${esc(x)}" title="${esc(photoTitle(x))}"><img src="${urls[x]}" alt="${esc(photoTitle(x))}" loading="lazy"></button>`).join('')}</div></div>`:''}).join('')}<button type="button" class="out" data-sm="cancel">Annuler</button></div>`:`<button type="button" class="addg" data-sm="open">+ Ajouter un tirage</button>`;
+    body.innerHTML=`<h3>Prix de tous les tirages</h3>${defs}
+      <h3>Tirages en vente</h3><ul class="sm-list">${mg}</ul>${pick}
+      <p class="hint">« Prix » permet de fixer un prix propre à un tirage. Pensez à publier pour mettre la boutique à jour.</p>`;
     return;
   }
   if(tab==='txt'){
@@ -1460,6 +1482,8 @@ $('#logout').onclick=()=>{authed=false;TOKEN='';try{sessionStorage.removeItem('c
 $('#boBody').addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.k){S[t.dataset.k]=t.value;save();renderSite();return}
+  if(t.dataset.pdef){const v=Math.round(+t.value);if(v>0){S.prices=Object.assign({},S.prices,{[t.dataset.pdef]:v});save();if(isStore())renderStore();if(!$('#pm').hidden)renderPm();renderCart();document.querySelectorAll('#boBody [data-pown][data-f="'+t.dataset.pdef+'"]').forEach(x=>x.placeholder=v)}return}
+  if(t.dataset.pown!==undefined){const x=S.store[+t.dataset.pown];if(x){const v=Math.round(+t.value);x.prices=Object.assign({},x.prices);if(v>0)x.prices[t.dataset.f]=v;else delete x.prices[t.dataset.f];save();if(isStore())renderStore();renderCart();const b=document.querySelector('#boBody [data-sm="price"][data-i="'+t.dataset.pown+'"]');if(b){const own=FORMATS.some(f=>+x.prices[f.id]>0);b.classList.toggle('own',own);b.textContent=own?'Prix perso':'Prix'}}return}
   if(t.dataset.st!==undefined){const x=S.store[+t.dataset.st];if(x){x.title=t.value.trim();save();syncStore();if(isStore())renderStore()}return}
   if(t.dataset.print){const p=t.dataset.print;S.meta[p]=Object.assign({},S.meta[p],{printUrl:t.value.trim()});save();return}
 });
@@ -1472,6 +1496,7 @@ $('#boBody').addEventListener('click',e=>{
   const sm=e.target.closest('[data-sm]');
   if(sm){const i=+sm.dataset.i,act=sm.dataset.sm;
     if(act==='open'){boPick=true;renderBo();return}
+    if(act==='price'){boPrice=boPrice===i?null:i;renderBo();return}
     if(act==='cancel'){boPick=false;renderBo();return}
     if(act==='add'){S.store.push({p:sm.dataset.p,title:''});boPick=false;save();syncStore();renderSite();renderBo();const ins=document.querySelectorAll('#boBody [data-st]');const last=ins[ins.length-1];if(last)last.focus();return}
     if(act==='up'&&i>0){[S.store[i-1],S.store[i]]=[S.store[i],S.store[i-1]]}
@@ -1539,6 +1564,7 @@ else if(galFromHash()){syncFromHash(false);setTimeout(()=>glideTo($('#galerie'))
     DIRTY=SITE_LIVE;
     S=Object.assign(DEFAULT(),saved);
     if(!Array.isArray(saved.store))S.store=JSON.parse(JSON.stringify(STORE_SEED));
+    if(!saved.prices)S.prices=DEFAULT().prices;
     S.open=(galFromHash()||{}).id||null;
     {const o='photos/nu-artistique--cerizvodka-12.jpg',n='photos/nu-artistique--cerizvodka-12-v2.jpg';S.galleries.forEach(g=>{g.photos=g.photos.map(x=>x===o?n:x);if(g.cover===o)g.cover=n});if(S.hero===o)S.hero=n;if(S.meta[o]){S.meta[n]=S.meta[o];delete S.meta[o]}}
     {const o='photos/nu-artistique--sloane-06.jpg',n='photos/nu-artistique--sloane-06-v3.jpg';S.galleries.forEach(g=>{g.photos=g.photos.map(x=>x===o?n:x);if(g.cover===o)g.cover=n});if(S.hero===o)S.hero=n;if(S.meta[o]){S.meta[n]=S.meta[o];delete S.meta[o]}}

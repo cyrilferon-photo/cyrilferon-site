@@ -43,14 +43,22 @@ const baseTitle = (p) => p.replace(/^.*--/, "").replace(/\.[a-z]+$/, "").replace
 export async function getCatalog() {
   try {
     const c = await getStore({ name: "site", consistency: "strong" }).get("content", { type: "json" });
-    const list = c?.content?.store;
+    const list = c?.content?.store, defs = c?.content?.prices || {};
+    const okP = (v) => Number.isInteger(+v) && +v >= 1 && +v <= 100000;
+    const base = Object.fromEntries(Object.keys(FORMATS).map((f) => [f, okP(defs[f]) ? +defs[f] : FORMATS[f].price]));
     if (Array.isArray(list) && list.length) {
       const out = {};
-      for (const x of list) if (x && OK_PATH.test(x.p || "")) out[x.p] = String(x.title || "").trim().slice(0, 80) || PRODUCTS[x.p] || baseTitle(x.p);
+      for (const x of list) if (x && OK_PATH.test(x.p || "")) {
+        const prices = { ...base };
+        for (const f of Object.keys(FORMATS)) if (x.prices && okP(x.prices[f])) prices[f] = +x.prices[f];
+        out[x.p] = { title: String(x.title || "").trim().slice(0, 80) || PRODUCTS[x.p] || baseTitle(x.p), prices };
+      }
       if (Object.keys(out).length) return out;
     }
+    return Object.fromEntries(Object.entries(PRODUCTS).map(([p, t]) => [p, { title: t, prices: base }]));
   } catch {}
-  return PRODUCTS;
+  const base = Object.fromEntries(Object.keys(FORMATS).map((f) => [f, FORMATS[f].price]));
+  return Object.fromEntries(Object.entries(PRODUCTS).map(([p, t]) => [p, { title: t, prices: base }]));
 }
 
 export const json = (obj, status = 200) =>
@@ -86,8 +94,8 @@ export async function checkCart(body) {
     const [p, f] = k.split("|");
     const sold = await soldCount(store, k);
     const cap = FORMATS[f].edition;
-    if (sold + q > cap) throw new Error(sold >= cap ? `${CAT[p]} ${FORMATS[f].label} : épuisé.` : `${CAT[p]} ${FORMATS[f].label} : plus que ${cap - sold} exemplaire(s) disponible(s).`);
-    lines.push({ p, f, q, title: CAT[p], label: FORMATS[f].label, price: FORMATS[f].price });
+    if (sold + q > cap) throw new Error(sold >= cap ? `${CAT[p].title} ${FORMATS[f].label} : épuisé.` : `${CAT[p].title} ${FORMATS[f].label} : plus que ${cap - sold} exemplaire(s) disponible(s).`);
+    lines.push({ p, f, q, title: CAT[p].title, label: FORMATS[f].label, price: CAT[p].prices[f] });
   }
   const subtotal = lines.reduce((a, l) => a + l.price * l.q, 0);
   const shipping = ZONES[zone].price;
@@ -122,6 +130,6 @@ export async function expandCartMeta(meta) {
   const CAT = await getCatalog();
   return s.split(";").filter(Boolean).map((x) => {
     const [pp, f, q] = x.split("|"); const p = dec(pp);
-    return { p, f, q: Number(q), title: CAT[p] || PRODUCTS[p] || p, label: FORMATS[f]?.label, price: FORMATS[f]?.price };
+    return { p, f, q: Number(q), title: CAT[p]?.title || PRODUCTS[p] || p, label: FORMATS[f]?.label, price: CAT[p]?.prices?.[f] ?? FORMATS[f]?.price };
   });
 }
