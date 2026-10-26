@@ -1440,7 +1440,7 @@ function renderBo(){
     <div class="drop" id="drop">Glissez vos photos ici ou <label for="b-files">choisissez des fichiers</label>
       <input id="b-files" type="file" accept="image/*" multiple hidden><p class="hint" id="upMsg" style="margin-top:6px"></p></div>
     ${g.photos.length?`<div class="thumbs">${g.photos.map((p,i)=>`<div class="th${boPrint===p?' sel':''}">
-        ${has(p)?`<img src="${urls[p]}" alt="" loading="lazy">`:'<div style="aspect-ratio:1"></div>'}
+        ${has(p)?`<img src="${urls[p]}" alt="" title="${esc(photoTitle(p)||'')}" loading="lazy">`:'<div style="aspect-ratio:1"></div>'}
         <div class="tags"><span class="num">${i+1}</span>${coverOf(g)===p?'<span>Couv.</span>':''}${noPrint(p)?'<span>Sans tirage</span>':''}${heroId()===p?'<span>Accueil</span>':''}${printUrl(p)?'<span>En vente</span>':''}</div>
         <div class="acts">
           <button type="button" data-act="pl" data-p="${p}" ${i===0?'disabled':''} aria-label="Déplacer avant" title="Déplacer avant">←</button>
