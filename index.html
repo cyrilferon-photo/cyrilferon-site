@@ -346,7 +346,9 @@ body.is-store main>:not(#boutique){display:none!important}
 .pay:disabled{opacity:.45;cursor:not-allowed}
 .lb{position:fixed;inset:0;z-index:40;background:rgba(8,8,8,.94);display:grid;grid-template-rows:1fr auto;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));color:#E3E4DF}
 .lb img{max-width:100%;max-height:100%;object-fit:contain;margin:auto;display:block;min-height:0}
-.lb .stage{min-height:0;display:grid;cursor:zoom-out}
+.lb .stage{min-height:0;display:grid;cursor:zoom-out;position:relative}
+.lb .lb-logo{position:absolute;left:0;top:0;height:26px;width:auto;background:#fff;opacity:0;pointer-events:none;transform:translateX(-50%);transition:opacity .3s;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.lb .lb-logo.on{opacity:.85}
 .lb{cursor:zoom-out}
 .lb img,.lb button,.lb a{cursor:default}
 .lb button,.lb a{cursor:pointer}
@@ -649,7 +651,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
 <div class="peek" id="peek" aria-hidden="true"><div class="frame" id="peekFrame"></div></div>
 
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Visionneuse" data-i18n-aria="viewer">
-  <div class="stage"><img id="lbImg" alt=""></div>
+  <div class="stage"><img id="lbImg" alt=""><span class="logo lb-logo" id="lbLogo" aria-hidden="true"></span></div>
   <div class="bar mono"><button type="button" id="lbPrev" data-i18n="lbPrev">← Préc.</button><span class="lb-mid"><span class="lb-info"><span id="lbTitle"></span><span id="lbPos"></span></span><button type="button" class="lb-cta" id="lbReq" data-i18n="lbReq">Demander un tirage</button><a class="lb-cta" id="lbBuy" href="#" target="_blank" rel="noopener" hidden data-i18n="lbBuy">Voir le tirage en vente ↗</a></span><span style="display:flex;gap:8px"><button type="button" id="lbNext" data-i18n="lbNext">Suiv. →</button><button type="button" id="lbClose" data-i18n="lbClose">Fermer</button></span></div>
 </div>
 
@@ -1296,7 +1298,11 @@ function printUrl(p){const u=(S.meta[p]&&S.meta[p].printUrl)||'';return /^https?
 function photoLabel(p){const g=galOf(p);return g?galName(g)+' '+t('no')+(g.photos.indexOf(p)+1):'Photo'}
 /* en grand : toujours la photo de la galerie (version HD d'origine si elle existe), jamais le recadrage du carrousel */
 const lbSrc=p=>(lbFromHero&&HERO_HD.has(p)&&!HERO_HD_FILE[p]&&urls[p]&&!urls[p].startsWith('blob:'))?p.replace('photos/','photos/hd/'):(p==='photos/metiers--patisserie-03.jpg'&&urls[p]&&!urls[p].startsWith('blob:')?'photos/hd/metiers--patisserie-03.jpg':urls[p]);
-function showLb(){const p=lbList[lbI];$('#lbImg').src=lbSrc(p);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
+function placeLbLogo(){const im=$('#lbImg'),lg=$('#lbLogo'),st=im&&im.parentElement;if(!im||!lg||!im.naturalWidth){lg&&lg.classList.remove('on');return}
+  const r=im.getBoundingClientRect(),s=st.getBoundingClientRect(),h=Math.max(16,Math.min(30,r.width*.045));lg.style.height=h+'px';
+  lg.style.left=(r.left-s.left+r.width/2)+'px';lg.style.top=(r.bottom-s.top-h-Math.max(10,r.height*.03))+'px';lg.classList.add('on')}
+$('#lbImg').addEventListener('load',placeLbLogo);addEventListener('resize',()=>{if(!$('#lb').hidden)placeLbLogo()});
+function showLb(){const p=lbList[lbI];$('#lbLogo').classList.remove('on');$('#lbImg').src=lbSrc(p);if($('#lbImg').complete)requestAnimationFrame(placeLbLogo);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
   $('#lbTitle').textContent=galName(galOf(p))||'';
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
   const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?'#boutique':(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
