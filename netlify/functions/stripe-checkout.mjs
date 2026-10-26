@@ -40,7 +40,11 @@ export default async (req) => {
     shipping_options: { 0: { shipping_rate_data: { type: "fixed_amount", display_name: zone.name[lang], fixed_amount: { amount: zone.price * 100, currency: "eur" } } } },
     phone_number_collection: { enabled: "true" },
     metadata: { ...cartMeta(cart.lines), zone: cart.zone },
-    payment_intent_data: { description: cart.lines.map((l) => `${l.q} × ${l.title} ${l.label}`).join(", ") },
+    payment_intent_data: { description: cart.lines.map((l) => `${l.q} × ${l.title} ${l.label}`).join(", ") + (lang === "fr" ? ` · Formulaire de rétractation : ${origin}/retractation` : ` · Withdrawal form: ${origin}/retractation`) },
+    custom_text: {
+      submit: { message: lang === "fr" ? `Droit de rétractation de 14 jours à réception. [Formulaire de rétractation](${origin}/retractation)` : `14-day right of withdrawal from delivery. [Withdrawal form](${origin}/retractation)` },
+      after_submit: { message: lang === "fr" ? `Merci ! Formulaire de rétractation : [${origin.replace(/^https?:\/\//, "")}/retractation](${origin}/retractation)` : `Thank you! Withdrawal form: [${origin.replace(/^https?:\/\//, "")}/retractation](${origin}/retractation)` },
+    },
   });
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",

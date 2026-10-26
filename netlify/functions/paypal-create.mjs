@@ -12,7 +12,7 @@ export default async (req) => {
     body: JSON.stringify({
       intent: "CAPTURE",
       purchase_units: [{
-        description: lang === "fr" ? "Tirages d’art — Cyril Féron" : "Fine art prints — Cyril Féron",
+        description: (lang === "fr" ? "Tirages d’art — Cyril Féron · Rétractation : " : "Fine art prints — Cyril Féron · Withdrawal form: ") + new URL(req.url).host + "/retractation",
         amount: { ...eur(cart.total), breakdown: { item_total: eur(cart.subtotal), shipping: eur(cart.shipping) } },
         items: cart.lines.map((l) => ({ name: `${l.title} — ${l.label}`.slice(0, 127), quantity: String(l.q), unit_amount: eur(l.price), category: "PHYSICAL_GOODS" })),
       }],
