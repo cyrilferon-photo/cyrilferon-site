@@ -113,6 +113,10 @@ section{padding-block:clamp(56px,8vw,110px) 0}
 .ig-grid img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .3s,opacity .6s;opacity:0}
 .ig-grid img.ld{opacity:1}
 .ig-grid a:hover img{filter:brightness(1.12)}
+.ig-grid a.ig-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border:1px solid var(--line);background:none;color:var(--ink);text-decoration:none;transition:background .25s,color .25s,border-color .25s}
+.ig-grid a.ig-logo:hover{background:var(--safe);border-color:var(--safe);color:var(--paper)}
+.ig-logo i,.ig-logo svg{font-size:clamp(44px,5vw,72px);width:clamp(44px,5vw,72px);height:clamp(44px,5vw,72px)}
+.ig-logo .mono{font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .ig-grid .ig-vid{position:absolute;right:8px;top:8px;font-size:11px;color:#fff;text-shadow:0 0 4px #000}
 .ugly-card{display:grid;align-content:space-between;gap:18px;height:calc(100% - 30px);min-height:220px;padding:24px;border:1px solid var(--line);color:var(--ink);text-decoration:none;transition:background .25s,color .25s}
 .ugly-card:hover{background:var(--safe);border-color:var(--safe);color:var(--paper)}
@@ -624,7 +628,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
       <div class="sec-head"><i class="cx bl"></i><i class="cx br"></i><h2 data-i18n="followH">Suivre mon travail</h2><span class="mono">Instagram · UGLY</span></div>
       <div class="soc-grid">
         <div class="soc-block">
-          <div class="soc-top mono"><span class="soc-lbl"><i class="fa-brands fa-instagram" aria-hidden="true"></i>Instagram</span><a href="https://www.instagram.com/araak" target="_blank" rel="noopener">@araak →</a></div>
+          <div class="soc-top mono"><span>Instagram</span><a href="https://www.instagram.com/araak" target="_blank" rel="noopener">@araak →</a></div>
           <ul class="ig-grid" id="igGrid"></ul>
         </div>
         <div class="soc-block">
@@ -1634,7 +1638,7 @@ $('#cartZone').addEventListener('change',e=>{ZONE=e.target.value;try{localStorag
 /* Le flux passe par /api/instagram (fonction Netlify, cache 1 h) ; ailleurs, sélection de photos du site. */
 const IG_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
 const IG_FALLBACK=['photos/concerts--sun-01.jpg','photos/voyages--newyorkcity-24.jpg','photos/metiers--danielferon-02.jpg','photos/voyages--miami-04.jpg','photos/concerts--concerts-01.jpg','photos/metiers--pascalarlot-03.jpg'];
-function igTiles(items){$('#igGrid').innerHTML=items.map(it=>`<li><a href="${esc(it.href)}" target="_blank" rel="noopener" aria-label="${esc(it.alt||'Instagram')}"><img src="${esc(it.src)}" alt="" loading="lazy" decoding="async">${it.video?'<span class="ig-vid" aria-hidden="true">▶</span>':''}</a></li>`).join('');
+function igTiles(items){$('#igGrid').innerHTML=items.slice(0,5).map(it=>`<li><a href="${esc(it.href)}" target="_blank" rel="noopener" aria-label="${esc(it.alt||'Instagram')}"><img src="${esc(it.src)}" alt="" loading="lazy" decoding="async">${it.video?'<span class="ig-vid" aria-hidden="true">▶</span>':''}</a></li>`).join('')+`<li><a class="ig-logo" href="https://www.instagram.com/araak" target="_blank" rel="noopener" aria-label="Instagram @araak"><i class="fa-brands fa-instagram" aria-hidden="true"></i><span class="mono">@araak</span></a></li>`;
   $('#igGrid').querySelectorAll('img').forEach(i=>{if(i.complete)i.classList.add('ld');else i.onload=()=>i.classList.add('ld')})}
 async function loadIg(){
   const fb=()=>igTiles(IG_FALLBACK.filter(p=>urls[p]).map(p=>({src:urls[p],href:'https://www.instagram.com/araak',alt:'Instagram @araak'})));
