@@ -404,6 +404,7 @@ body.bo-open .scrim{display:none}
 .th{position:relative;background:var(--paper);border:1px solid var(--line)}
 .th img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
 .th .tags{position:absolute;left:4px;top:4px;display:flex;gap:3px}
+.th .tags span.num{background:rgba(0,0,0,.7)}
 .th .tags span{background:var(--safe);color:#fff;font-family:var(--f-mono);font-size:9px;padding:2px 4px;text-transform:uppercase}
 .th .acts{display:grid;grid-template-columns:repeat(6,1fr)}
 .th.sel{outline:2px solid var(--safe);outline-offset:1px}
@@ -1291,9 +1292,10 @@ const lbSrc=p=>(lbFromHero&&HERO_HD.has(p)&&!HERO_HD_FILE[p]&&urls[p]&&!urls[p].
 function showLb(){const p=lbList[lbI];$('#lbImg').src=lbSrc(p);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
   $('#lbTitle').textContent=galName(galOf(p))||'';
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
-  const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||NO_PRINT.has(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?'#boutique':(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
+  const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?'#boutique':(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
 /* photos sans bouton « Demander un tirage » (ex. photo exposée, pas d'édition prévue) */
 const NO_PRINT=new Set(['photos/nu-artistique--sloane-10.jpg','photos/nu-artistique--cerizvodka-03.jpg']);
+function noPrint(p){const m=S.meta&&S.meta[p];if(m&&typeof m.noPrint==='boolean')return m.noPrint;return NO_PRINT.has(p)}
 $('#lbReq').onclick=()=>{const p=lbList[lbI],g=galOf(p);closeLb();
   $('#f-subject').value='print';if(g)$('#f-gal').value=g.name;
   $('#f-msg').value=t('reqMsg',{p:photoTitle(p)||photoLabel(p),g:galName(g)});
@@ -1439,16 +1441,17 @@ function renderBo(){
       <input id="b-files" type="file" accept="image/*" multiple hidden><p class="hint" id="upMsg" style="margin-top:6px"></p></div>
     ${g.photos.length?`<div class="thumbs">${g.photos.map((p,i)=>`<div class="th${boPrint===p?' sel':''}">
         ${has(p)?`<img src="${urls[p]}" alt="" loading="lazy">`:'<div style="aspect-ratio:1"></div>'}
-        <div class="tags">${coverOf(g)===p?'<span>Couv.</span>':''}${heroId()===p?'<span>Accueil</span>':''}${printUrl(p)?'<span>En vente</span>':''}</div>
+        <div class="tags"><span class="num">${i+1}</span>${coverOf(g)===p?'<span>Couv.</span>':''}${noPrint(p)?'<span>Sans tirage</span>':''}${heroId()===p?'<span>Accueil</span>':''}${printUrl(p)?'<span>En vente</span>':''}</div>
         <div class="acts">
           <button type="button" data-act="pl" data-p="${p}" ${i===0?'disabled':''} aria-label="Déplacer avant" title="Déplacer avant">←</button>
           <button type="button" data-act="pr" data-p="${p}" ${i===g.photos.length-1?'disabled':''} aria-label="Déplacer après" title="Déplacer après">→</button>
           <button type="button" data-act="cover" data-p="${p}" aria-label="Couverture de la galerie" title="Couverture de la galerie">★</button>
           <button type="button" data-act="hero" data-p="${p}" aria-label="Photo d'accueil" title="Photo d'accueil">⌂</button>
+          <button type="button" data-act="np" data-p="${p}" aria-pressed="${noPrint(p)}" aria-label="Bouton Demander un tirage" title="${noPrint(p)?'Réafficher « Demander un tirage »':'Masquer « Demander un tirage »'}">${noPrint(p)?'⊘':'◎'}</button>
           <button type="button" data-act="print" data-p="${p}" aria-label="Lien de vente du tirage" title="Lien de vente du tirage">€</button>
           <button type="button" data-act="rm" data-p="${p}" aria-label="Supprimer la photo" title="Supprimer la photo">✕</button>
         </div></div>`).join('')}</div>
-      <p class="hint">← → ordre · ★ couverture de la galerie · ⌂ photo d'accueil · € tirage en vente · ✕ supprimer</p>
+      <p class="hint">← → ordre · ★ couverture de la galerie · ⌂ photo d'accueil · ◎/⊘ bouton « Demander un tirage » affiché ou masqué · € tirage en vente · ✕ supprimer</p>
       ${boPrint&&g.photos.includes(boPrint)?`<div class="field"><label for="b-print">Lien de la page de vente du tirage (${esc(photoLabel(boPrint))})</label><input id="b-print" data-print="${boPrint}" type="url" placeholder="https://… (vide = pas encore en vente)" value="${esc((S.meta[boPrint]||{}).printUrl||'')}"><p class="hint">Avec un lien, le bouton devient « Voir le tirage en vente ». Sans lien, il propose « Demander un tirage ».</p></div>`:''}`:''}
     <div><button type="button" class="danger ${armDel===g.id?'arm':''}" data-act="delg">${armDel===g.id?'Confirmer : supprimer « '+esc(g.name)+' » et ses photos':'Supprimer cette galerie'}</button></div>`:''}`;
   const drop=$('#drop');
@@ -1513,6 +1516,7 @@ $('#boBody').addEventListener('click',e=>{
   if(a==='pl'||a==='pr')mv(g.photos,g.photos.indexOf(b.dataset.p),a==='pl'?-1:1);
   if(a==='cover')g.cover=b.dataset.p;
   if(a==='hero')S.hero=b.dataset.p;
+  if(a==='np'){const q=b.dataset.p;S.meta[q]=Object.assign({},S.meta[q]);S.meta[q].noPrint=!noPrint(q);if(!S.meta[q].noPrint&&NO_PRINT.has(q))S.meta[q].noPrint=false}
   if(a==='print')boPrint=boPrint===b.dataset.p?null:b.dataset.p;
   if(a==='rm')removePhoto(g,b.dataset.p);
   if(a==='delg'){
