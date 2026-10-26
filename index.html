@@ -1379,7 +1379,9 @@ const setHdrH=()=>document.documentElement.style.setProperty('--hdrH',Math.round
 addEventListener('resize',()=>{if(bo.classList.contains('open'))setHdrH()});
 if('ResizeObserver' in window)new ResizeObserver(()=>{if(bo.classList.contains('open'))setHdrH()}).observe(document.querySelector('header.top'));
 function openBo(){if(!BO_ENABLED)return;setHdrH();document.body.classList.add('bo-open');bo.classList.add('open');bo.setAttribute('aria-hidden','false');scrim.classList.add('on');renderBo();($('#lg-pw')||$('#closeBo')).focus()}
-function closeBo(){document.body.classList.remove('bo-open');bo.classList.remove('open');bo.setAttribute('aria-hidden','true');scrim.classList.remove('on');$('#openBo').focus()}
+function closeBo(noFocus){document.body.classList.remove('bo-open');bo.classList.remove('open');bo.setAttribute('aria-hidden','true');scrim.classList.remove('on');if(noFocus!==true)$('#openBo').focus({preventScroll:true})}
+/* un clic dans l'en-tête (logo, menu, panier, contact, langue) referme le back office */
+document.querySelector('header.top').addEventListener('click',e=>{if(bo.classList.contains('open')&&e.target.closest('a,button'))closeBo(true)},true);
 $('#openBo').onclick=openBo;$('#closeBo').onclick=closeBo;scrim.onclick=closeBo;
 document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;document.querySelectorAll('.tabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));renderBo();$('#boBody').scrollTop=0});
 
