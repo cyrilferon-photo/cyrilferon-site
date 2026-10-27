@@ -85,7 +85,7 @@ async function verifyStripe(raw, header, secret) {
   return ok;
 }
 
-async function stripeWebhook(req, env) {
+async function stripeWebhook(req, env, ctx) {
   const secret = env.STRIPE_WEBHOOK_SECRET;
   if (!secret) return json({ error: "not configured" }, 503);
   const raw = await req.text();
@@ -97,7 +97,7 @@ async function stripeWebhook(req, env) {
   const store = db(env), id = `order:stripe_${s.id}`;
   if (await store.get(id)) return json({ received: true, duplicate: true });
   const lines = await assignNumbers(env, await expandCartMeta(env, s.metadata));
-  await store.put(id, {
+  const order = {
     provider: "stripe",
     id: s.id,
     payment: s.payment_intent,
@@ -109,8 +109,32 @@ async function stripeWebhook(req, env) {
     shipping: s.collected_information?.shipping_details || s.shipping_details || null,
     total: (s.amount_total || 0) / 100,
     lines,
-  });
+  };
+  await store.put(id, order);
+  ctx.waitUntil(afterOrder(env, order));
   return json({ received: true });
+}
+
+// ---------- après une vente : email à Cyril + copie dans Google Sheets ----------
+function addressOf(o) {
+  const sh = o.shipping || {};
+  const a = sh.address || {};
+  const nm = (typeof sh.name === "object" ? sh.name?.full_name : sh.name) || o.name || "";
+  return [nm, a.line1 || a.address_line_1, a.line2 || a.address_line_2, [a.postal_code, a.city || a.admin_area_2].filter(Boolean).join(" "), a.state || a.admin_area_1, a.country || a.country_code].filter(Boolean).join(", ");
+}
+export const orderRows = (o) => (o.lines || []).map((l) => ({
+  date: o.date, commande: o.id, paiement: o.provider === "paypal" ? "PayPal" : "Carte", client: o.name || "", email: o.email || "", telephone: o.phone || "",
+  adresse: addressOf(o), tirage: l.title, format: l.label, quantite: l.q, numeros: (l.numbers || []).join(" "), prix_unitaire: l.price, total_commande: o.total,
+}));
+async function afterOrder(env, o) {
+  const eur = (n) => Number(n || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+  const lines = (o.lines || []).map((l) => `• ${l.title} — ${l.label} × ${l.q} — n° ${(l.numbers || []).join(", ")} (${eur(l.price)} pièce)`).join("\n");
+  const text = `Nouvelle commande sur cyrilferon.com 🎉\n\n${lines}\n\nTotal payé : ${eur(o.total)} (${o.provider === "paypal" ? "PayPal" : "carte bancaire"})\n\nClient : ${o.name || "—"}\nEmail : ${o.email || "—"}${o.phone ? "\nTéléphone : " + o.phone : ""}\nLivraison : ${addressOf(o) || "—"}${o.zoneMismatch ? "\n⚠ Le pays de livraison ne correspond pas à la zone payée." : ""}\n\nNuméros à signer ci-dessus. Détail dans le back office, onglet Stocks.`;
+  const subj = `Vente : ${(o.lines || []).map((l) => `${l.title} ${l.label}`).join(", ")}`.slice(0, 180);
+  await Promise.allSettled([
+    mail(env, { subject: subj, text, replyTo: o.email }).catch((e) => console.error("mail vente", e?.message || e)),
+    env.SHEETS_URL ? fetch(env.SHEETS_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ rows: orderRows(o) }) }).catch((e) => console.error("sheets", e?.message || e)) : null,
+  ]);
 }
 
 // ---------- PayPal ----------
@@ -138,7 +162,7 @@ async function paypalCreate(req, env) {
   return json({ id: d.id });
 }
 
-async function paypalCapture(req, env) {
+async function paypalCapture(req, env, ctx) {
   if (req.method !== "POST") return notAllowed();
   let orderID, token;
   try { ({ orderID } = await req.json()); token = await ppToken(env); } catch (e) { return json({ error: e.message }, 400); }
@@ -156,7 +180,7 @@ async function paypalCapture(req, env) {
   const pu = d.purchase_units?.[0] || {};
   const country = pu.shipping?.address?.country_code;
   const lines = await assignNumbers(env, cart.lines);
-  await store.put(id, {
+  const order = {
     provider: "paypal",
     id: orderID,
     capture: pu.payments?.captures?.[0]?.id,
@@ -168,8 +192,10 @@ async function paypalCapture(req, env) {
     shipping: pu.shipping || null,
     total: cart.total,
     lines,
-  });
+  };
+  await store.put(id, order);
   await store.del(`pending:${orderID}`);
+  ctx.waitUntil(afterOrder(env, order));
   return json({ ok: true, lines });
 }
 
@@ -194,6 +220,25 @@ async function stock(req, env) {
   const sold = {};
   for (const p of Object.keys(CAT)) for (const f of Object.keys(FORMATS)) sold[key(p, f)] = await soldCount(env, key(p, f));
   return json({ editions: Object.fromEntries(Object.entries(FORMATS).map(([k, f]) => [k, f.edition])), sold });
+}
+
+// Export des commandes : fichier pour Excel / Google Sheets, ou envoi de tout l'historique vers la Google Sheet.
+async function ordersExport(req, env) {
+  if (!(await isAdmin(env, req))) return json({ error: "Session expirée, reconnectez-vous." }, 401);
+  const orders = (await db(env).list("order:", 1000)).map((x) => x.v).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const rows = orders.flatMap(orderRows);
+  if (req.method === "POST") {
+    if (!env.SHEETS_URL) return json({ error: "Google Sheets n’est pas encore relié (variable SHEETS_URL)." }, 503);
+    const r = await fetch(env.SHEETS_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ rows, replace: true }) });
+    if (!r.ok) return json({ error: "Google Sheets a refusé l’envoi." }, 502);
+    return json({ ok: true, rows: rows.length });
+  }
+  const head = ["date", "commande", "paiement", "client", "email", "telephone", "adresse", "tirage", "format", "quantite", "numeros", "prix_unitaire", "total_commande"];
+  const cell = (v) => { const s = String(v ?? ""); return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const fmt = (r) => head.map((h) => cell(h === "date" ? new Date(r.date).toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : typeof r[h] === "number" ? String(r[h]).replace(".", ",") : r[h])).join(";");
+  const titles = ["Date", "N° commande", "Paiement", "Client", "Email", "Téléphone", "Adresse de livraison", "Tirage", "Format", "Quantité", "Numéros d'exemplaire", "Prix unitaire (€)", "Total commande (€)"];
+  const csv = "\ufeff" + [titles.join(";"), ...rows.map(fmt)].join("\r\n");
+  return new Response(csv, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="commandes-cyrilferon-${new Date().toISOString().slice(0, 10)}.csv"`, "cache-control": "no-store" } });
 }
 
 async function ordersList(req, env) {
@@ -299,9 +344,15 @@ async function contact(req, env, ctx) {
   if (env.EMAIL && env.MAIL_FROM && env.MAIL_TO) ctx.waitUntil(sendMail(env, m).catch((e) => console.error("mail", e?.message || e)));
   return json({ ok: true });
 }
-async function sendMail(env, m) {
-  const subject = `Site — message de ${m.name}${m.subject ? " : " + m.subject : ""}`;
-  const text = `${m.message}\n\n—\n${m.name} <${m.email}>\n${m.date}`;
+const sendMail = (env, m) => mail(env, {
+  subject: `Site — message de ${m.name}${m.subject ? " : " + m.subject : ""}`,
+  text: `${m.message}\n\n—\n${m.name} <${m.email}>\n${m.date}`,
+  replyTo: m.email,
+});
+// Envoie un email à Cyril (Email Routing : seule l'adresse vérifiée peut être destinataire).
+async function mail(env, { subject, text, replyTo }) {
+  if (!(env.EMAIL && env.MAIL_FROM && env.MAIL_TO)) return;
+  const m = { email: replyTo || env.MAIL_TO };
   // API « Email Service » (env.EMAIL.send) ; repli sur l'API Email Routing (message MIME brut).
   let first;
   try {
@@ -354,20 +405,52 @@ async function instagram(req, ctx) {
   }
 }
 
+// ---------- pages : une vraie adresse par galerie, avec titre et aperçu de partage propres ----------
+const SITE = "https://cyrilferon.com";
+const PAGES = {
+  "": { title: "Cyril Féron — Photographe", desc: "Cyril Féron, directeur artistique, réalisateur et photographe : portraits, métiers, concerts, voyages, nu artistique et tirages d’art en édition limitée.", img: "/photos/hd/concerts--sun-01.jpg" },
+  portraits: { title: "Portraits — Cyril Féron, photographe", desc: "Chaque visage porte une histoire. Portraits réalisés chez les gens, dans leur atelier, leur café ou leur bureau, là où ils sont vraiment eux-mêmes.", img: "/photos/portraits--violaine-1.jpg" },
+  "work-craft": { title: "Work & Craft (Métiers) — Cyril Féron, photographe", desc: "Il y a de la beauté dans un geste répété mille fois. Artisans et gens de métier photographiés au cœur de leur travail : leurs mains, leurs outils, leur concentration.", img: "/photos/hd/metiers--danielferon-02.jpg" },
+  concerts: { title: "Concerts — Cyril Féron, photographe", desc: "Photographier un concert, c'est jouer avec le groupe : suivre son intention, anticiper la lumière, trouver le bon cadre au bon tempo.", img: "/photos/hd/concerts--concerts-01.jpg" },
+  travel: { title: "Travel (Voyages) — Cyril Féron, photographe", desc: "En voyage, je garde le regard de celui qui découvre. New York, Miami et ailleurs, en images.", img: "/photos/hd/voyages--newyorkcity-09.jpg" },
+  "fine-art-nude": { title: "Fine art nude (Nu artistique) — Cyril Féron, photographe", desc: "Nu artistique : un travail sur la lumière et le cadre. Galerie réservée aux adultes.", img: "/photos/hd/nu-artistique--silhouette-01.jpg" },
+  store: { title: "Tirages d’art — Cyril Féron, photographe", desc: "Tirages d’art signés et numérotés, en édition limitée, sur papier Hahnemühle Museum Etching 350 g.", img: "/photos/hd/concerts--sun-01.jpg" },
+};
+const escAttr = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+async function page(req, env, slug) {
+  const res = await env.ASSETS.fetch(new Request(new URL("/", req.url), { headers: req.headers }));
+  if (!res.ok || !(res.headers.get("content-type") || "").includes("text/html")) return res;
+  const P = PAGES[slug] || PAGES[""], url = SITE + (slug ? "/" + slug : "/");
+  const tags = `<link rel="canonical" href="${url}">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Cyril Féron">
+<meta property="og:title" content="${escAttr(P.title)}"><meta property="og:description" content="${escAttr(P.desc)}">
+<meta property="og:url" content="${url}"><meta property="og:image" content="${SITE}${P.img}">
+<meta name="twitter:card" content="summary_large_image">`;
+  let html = await res.text();
+  html = html.replace(/<title>[^<]*<\/title>/, `<title>${escAttr(P.title)}</title>`)
+    .replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escAttr(P.desc)}">\n${tags}`);
+  const h = new Headers(res.headers);
+  h.set("content-type", "text/html; charset=utf-8"); h.set("cache-control", "public, max-age=0, must-revalidate"); h.delete("content-length"); h.delete("etag");
+  return new Response(html, { status: 200, headers: h });
+}
+
 // ---------- routeur ----------
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url), p = url.pathname;
+    // www.cyrilferon.com → cyrilferon.com (une seule adresse pour Google)
+    if (url.hostname.startsWith("www.")) return Response.redirect(`https://${url.hostname.slice(4)}${p}${url.search}`, 301);
     try {
       switch (p) {
         case "/api/config": return config(env);
         case "/api/stock": return await stock(req, env);
         case "/api/orders": return await ordersList(req, env);
+        case "/api/orders-export": return await ordersExport(req, env);
         case "/api/reset": return await reset(req, env);
         case "/api/stripe-checkout": return await stripeCheckout(req, env);
-        case "/api/stripe-webhook": return await stripeWebhook(req, env);
+        case "/api/stripe-webhook": return await stripeWebhook(req, env, ctx);
         case "/api/paypal-create": return await paypalCreate(req, env);
-        case "/api/paypal-capture": return await paypalCapture(req, env);
+        case "/api/paypal-capture": return await paypalCapture(req, env, ctx);
         case "/api/login": return await login(req, env);
         case "/api/content": return await content(req, env);
         case "/api/upload": return await upload(req, env);
@@ -381,7 +464,9 @@ export default {
       if (p.startsWith("/api/")) return json({ error: "Introuvable." }, 404);
       // Boutique à l'adresse /store : même page, ouverte sur les tirages.
       if (p === "/store/") return Response.redirect(url.origin + "/store" + url.search, 301);
-      if (p === "/store") return env.ASSETS.fetch(new Request(new URL("/", url), req));
+      const slug = p.replace(/^\/+|\/+$/g, "");
+      if (p.length > 1 && p.endsWith("/") && PAGES[slug]) return Response.redirect(url.origin + "/" + slug + url.search, 301);
+      if ((req.method === "GET" || req.method === "HEAD") && (p === "/" || p === "/index.html" || (slug && PAGES[slug]))) return await page(req, env, p === "/index.html" ? "" : slug);
       return env.ASSETS.fetch(req);
     } catch (e) {
       console.error(p, e?.stack || e);

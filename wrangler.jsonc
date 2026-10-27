@@ -4,8 +4,9 @@
   "name": "cyrilferon",
   "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
-  // Fichiers du site servis tels quels (voir .assetsignore pour ceux qui restent privés)
-  "assets": { "directory": ".", "binding": "ASSETS" },
+  // Fichiers du site servis tels quels (voir .assetsignore pour ceux qui restent privés) ;
+  // la page d'accueil passe par le Worker (titre et aperçu de partage, redirection www)
+  "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": ["/", "/index.html"] },
   // Base de données du site (contenu publié, stocks, commandes, photos du back office, messages)
   "durable_objects": { "bindings": [{ "name": "SITE", "class_name": "SiteStore" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SiteStore"] }],

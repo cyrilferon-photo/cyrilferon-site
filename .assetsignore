@@ -11,3 +11,4 @@ package-lock.json
 netlify
 netlify.toml
 *.md
+docs
