@@ -450,6 +450,7 @@ body.bo-open .scrim{display:none}
 .sm-thumbs button:hover{border-color:var(--safe)}
 .sm-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 .sm-pick .out{justify-self:start}
+.bo-list>ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}.bo-list>ul>li{border:1px solid var(--line);padding:14px 16px}.bo-list ul ul{margin:8px 0;padding-left:18px}.bl-h{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.bl-h span{font-size:12px;color:var(--mute)}.bl-m{white-space:pre-wrap;margin:8px 0}
 .st-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .st-sum div{border:1px solid var(--line);padding:10px;display:grid;gap:2px}
 .st-sum strong{font-family:var(--f-display);font-stretch:80%;font-size:22px}
@@ -608,7 +609,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
       </div>
       <div class="contact-block">
         <div class="contact-head"><h3>Contact</h3><div data-i18n-html="contactText"><p>N'hésitez pas à me contacter, je serai ravi de vous lire. Je vous répondrai sous deux jours ouvrés.</p><p>Utilisez le formulaire ci-dessous pour toute demande de tarifs, de disponibilités, ou simplement pour dire bonjour.</p></div><p class="mail-line" id="mailLine" hidden><span data-i18n="orWrite">Ou écrivez-moi directement :</span> <a id="mailLink" href="#"></a> <button type="button" class="copy-mail" id="copyMail" data-i18n="copyMail">Copier</button></p></div>
-        <form class="contact" id="contact" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" novalidate><input type="hidden" name="form-name" value="contact"><p hidden><label>Ne pas remplir <input name="bot-field"></label></p>
+        <form class="contact" id="contact" name="contact" method="POST" novalidate><p hidden><label>Ne pas remplir <input name="bot-field"></label></p>
           <div class="row2">
             <div class="field"><label for="f-name" data-i18n="fName">Nom</label><input id="f-name" name="name" autocomplete="name" required></div>
             <div class="field"><label for="f-mail">Email</label><input id="f-mail" name="email" type="email" autocomplete="email" required></div>
@@ -763,6 +764,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
       <button type="button" role="tab" data-tab="hero" aria-selected="false">Carrousel</button>
       <button type="button" role="tab" data-tab="shop" aria-selected="false">Boutique</button>
       <button type="button" role="tab" data-tab="stock" aria-selected="false" class="tab-r">Stocks</button>
+      <button type="button" role="tab" data-tab="msg" aria-selected="false">Messages</button>
     </div>
   </div>
   <div class="bo-body" id="boBody"></div>
@@ -904,7 +906,7 @@ function syncFromHash(scroll){
   if(S.open){S.open=null;renderSite();if(scroll)glideTo($('#galeries'))}
 }
 /* boutique : adresse /store sur le site en ligne, #boutique sur le prototype */
-const USE_PATH=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname),STORE_PATH='/store';
+const USE_PATH=/(^|\.)workers\.dev$|(^|\.)cyrilferon\.com$/.test(location.hostname),STORE_PATH='/store';
 function atStore(){return location.hash==='#boutique'||(USE_PATH&&location.pathname===STORE_PATH)}
 addEventListener('popstate',()=>syncFromHash(true));
 addEventListener('hashchange',()=>syncFromHash(true));
@@ -1348,13 +1350,13 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&bo.classList.contains('open'))closeBo();
 });
 
-/* contact form: Netlify Forms on the live site, demo message elsewhere */
-const LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
+/* contact form: envoyé à /api/contact (Worker Cloudflare) sur le site en ligne, message de démo ailleurs */
+const LIVE=/(^|\.)workers\.dev$|(^|\.)cyrilferon\.com$/.test(location.hostname);
 $('#contact').addEventListener('submit',async e=>{e.preventDefault();const f=e.target;
   if(!f.elements.name.value.trim()||!f.elements.email.value.includes('@')||!f.elements.message.value.trim()){$('#status').textContent=t('fErr');return}
   if(!LIVE){$('#status').textContent=t('fOk');f.reset();return}
   const btn=f.querySelector('.send');btn.disabled=true;
-  try{const r=await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(f)).toString()});
+  try{const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(f)).toString()});
     if(!r.ok)throw 0;$('#status').textContent=t('fSent');f.reset()}
   catch(_){$('#status').textContent=t('fFail')}
   btn.disabled=false;});
@@ -1362,8 +1364,8 @@ $('#contact').addEventListener('submit',async e=>{e.preventDefault();const f=e.t
 /* ---------- back office ---------- */
 const bo=$('#bo'),scrim=$('#scrim');let tab='gal',boSel=null,armDel=null,boPrint=null,boPick=false,boPrice=null,boHeroPick=false;
 let pwHash=null,pwReady=false,authed=false;
-/* site en ligne : back office protégé par le mot de passe ADMIN_PASSWORD (Netlify), modifications publiées pour tous */
-const SITE_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
+/* site en ligne : back office protégé par le mot de passe ADMIN_PASSWORD (Cloudflare), modifications publiées pour tous */
+const SITE_LIVE=/(^|\.)workers\.dev$|(^|\.)cyrilferon\.com$/.test(location.hostname);
 let TOKEN='';try{TOKEN=sessionStorage.getItem('cf-tok')||''}catch(_){}
 try{authed=sessionStorage.getItem('cf-auth')==='1'}catch(_){}
 /* Mot de passe désactivé pendant la phase de prototype : passer à true pour le réactiver */
@@ -1425,7 +1427,20 @@ function renderBo(){
     body.innerHTML=`<h3>État des stocks</h3>
       <div class="st-sum"><div><strong>${tot}</strong><span>tirages vendus</span></div><div><strong>${money(ca)}</strong><span>de ventes (hors port, aux prix actuels)</span></div><div><strong>${STORE_PHOTOS.length*30-tot}</strong><span>exemplaires restants</span></div></div>
       <ul class="st-list">${rows}</ul>
-      <p class="hint">Édition de 30 par photo : 15 en 24 × 30, 10 en 40 × 50, 5 en 50 × 70. Orange : derniers exemplaires (alerte affichée sur la fiche). Rouge : épuisé.</p>`;
+      <p class="hint">Édition de 30 par photo : 15 en 24 × 30, 10 en 40 × 50, 5 en 50 × 70. Orange : derniers exemplaires (alerte affichée sur la fiche). Rouge : épuisé.</p>
+      <h3>Commandes</h3><div id="boList" class="bo-list"><p class="hint">${SITE_LIVE?'Chargement…':'Les commandes s’affichent ici sur le site en ligne.'}</p></div>`;
+    if(SITE_LIVE)boFetchList('/api/orders','orders',o=>{const ad=o.shipping&&(o.shipping.address||o.shipping);const a=ad&&ad.address?ad.address:ad;
+      const addr=a?[a.name||o.shipping.name||(ad&&ad.name),a.line1||a.address_line_1,a.line2||a.address_line_2,[a.postal_code,a.city||a.admin_area_2].filter(Boolean).join(' '),a.country||a.country_code].filter(Boolean).join(', '):'';
+      return `<li><div class="bl-h"><b>${esc(o.name||'')}</b><span>${new Date(o.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})} · ${o.provider==='paypal'?'PayPal':'Carte'} · ${money(o.total||0)}</span></div>
+        <ul>${(o.lines||[]).map(l=>`<li>${esc(l.title)} · ${esc(l.label)} · <b>n° ${esc((l.numbers||[]).join(', '))}</b></li>`).join('')}</ul>
+        <p class="hint">${esc(o.email||'')}${o.phone?' · '+esc(o.phone):''}${addr?'<br>'+esc(addr):''}${o.zoneMismatch?'<br><b style="color:var(--safe)">Attention : pays de livraison hors de la zone payée</b>':''}</p></li>`});
+    return;
+  }
+  if(tab==='msg'){
+    body.innerHTML=`<h3>Messages reçus</h3><div id="boList" class="bo-list"><p class="hint">${SITE_LIVE?'Chargement…':'Les messages du formulaire de contact s’affichent ici sur le site en ligne.'}</p></div>
+      <p class="hint">Chaque message est aussi envoyé par email. Répondez directement depuis votre messagerie.</p>`;
+    if(SITE_LIVE)boFetchList('/api/messages','messages',m=>`<li><div class="bl-h"><b>${esc(m.name)}</b><span>${new Date(m.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</span></div>
+      ${m.subject?`<p><b>${esc(m.subject)}</b></p>`:''}<p class="bl-m">${esc(m.message)}</p><p class="hint"><a href="mailto:${esc(m.email)}?subject=${encodeURIComponent('Re: '+(m.subject||'votre message'))}">${esc(m.email)}</a></p></li>`);
     return;
   }
   if(tab==='shop'){
@@ -1561,6 +1576,11 @@ $('#boBody').addEventListener('click',e=>{
   }
   save();renderSite();renderBo();
 });
+async function boFetchList(url,key,row){const box=$('#boList');if(!box)return;
+  try{const r=await fetch(url,{headers:{Authorization:'Bearer '+TOKEN},cache:'no-store'});if(r.status===401){box.innerHTML='<p class="hint">Session expirée : reconnectez-vous.</p>';return}
+    const d=await r.json();const L=d[key]||[];if($('#boList')!==box)return;
+    box.innerHTML=L.length?`<ul>${L.map(row).join('')}</ul>`:'<p class="hint">Aucun pour le moment.</p>'}
+  catch(_){box.innerHTML='<p class="hint">Chargement impossible.</p>'}}
 function removePhoto(g,p){g.photos=g.photos.filter(x=>x!==p);if(Array.isArray(S.heroList))S.heroList=S.heroList.filter(x=>x!==p);if(g.cover===p)g.cover=null;if(S.hero===p)S.hero=null;delete S.meta[p];if(urls[p]&&urls[p].startsWith('blob:')){URL.revokeObjectURL(urls[p]);delete urls[p];DB.del('photos',p)}}
 
 async function shrink(file){
@@ -1628,8 +1648,8 @@ else if(galFromHash()){syncFromHash(false);setTimeout(()=>glideTo($('#galerie'))
   }
   if(typeof pubUI==='function')pubUI();
 })();
-/* ================= PAIEMENTS (Stripe + PayPal via fonctions Netlify) ================= */
-let PAYCFG=null,ppReady=false;const PAY_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
+/* ================= PAIEMENTS (Stripe + PayPal via le Worker Cloudflare) ================= */
+let PAYCFG=null,ppReady=false;const PAY_LIVE=/(^|\.)workers\.dev$|(^|\.)cyrilferon\.com$/.test(location.hostname);
 const cartItems=()=>CART.map(c=>({p:c.p,f:c.f,q:c.q}));
 const cartLock=on=>{['#cartCard','#cartPay'].forEach(s=>{const b=$(s);if(b)b.disabled=on})};
 async function api(path,body){const r=await fetch(path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||t('payErr'));return d}
@@ -1670,8 +1690,8 @@ $('#cartZone').addEventListener('change',e=>{ZONE=e.target.value;try{localStorag
 
 
 /* ================= SUIVRE : fil Instagram automatique (Behold) ================= */
-/* Le flux passe par /api/instagram (fonction Netlify, cache 1 h) ; ailleurs, sélection de photos du site. */
-const IG_LIVE=/(^|\.)netlify\.app$|(^|\.)cyrilferon\.com$/.test(location.hostname);
+/* Le flux passe par /api/instagram (Worker Cloudflare, cache 1 h) ; ailleurs, sélection de photos du site. */
+const IG_LIVE=/(^|\.)workers\.dev$|(^|\.)cyrilferon\.com$/.test(location.hostname);
 const IG_FALLBACK=['photos/concerts--sun-01.jpg','photos/voyages--newyorkcity-24.jpg','photos/metiers--danielferon-02.jpg','photos/voyages--miami-04.jpg','photos/concerts--concerts-01.jpg','photos/metiers--pascalarlot-03.jpg'];
 function igTiles(items){$('#igGrid').innerHTML=items.slice(0,5).map(it=>`<li><a href="${esc(it.href)}" target="_blank" rel="noopener" aria-label="${esc(it.alt||'Instagram')}"><img src="${esc(it.src)}" alt="" loading="lazy" decoding="async">${it.video?'<span class="ig-vid" aria-hidden="true">▶</span>':''}</a></li>`).join('')+`<li><a class="ig-logo" href="https://www.instagram.com/araak" target="_blank" rel="noopener" aria-label="Instagram @araak"><i class="fa-brands fa-instagram" aria-hidden="true"></i><span class="mono">@araak</span></a></li>`;
   $('#igGrid').querySelectorAll('img').forEach(i=>{if(i.complete)i.classList.add('ld');else i.onload=()=>i.classList.add('ld')})}

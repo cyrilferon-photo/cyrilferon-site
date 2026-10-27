@@ -1,0 +1,4 @@
+/photos/*
+  Cache-Control: public, max-age=31536000, immutable
+/rooms/*
+  Cache-Control: public, max-age=31536000, immutable
