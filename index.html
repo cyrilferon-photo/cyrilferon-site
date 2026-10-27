@@ -63,6 +63,10 @@ nav.main .nx{display:inline-block;flex:none;position:relative;top:-2px;width:11p
 nav.main a:hover{color:var(--safe)}
 .hd-tools{position:absolute;right:var(--gutR);top:50%;transform:translateY(-50%);display:flex;gap:8px;z-index:2}
 .hd-btn{display:grid;place-items:center;width:38px;height:38px;border:1px solid var(--ink);background:none;color:var(--ink);font-family:var(--f-mono);font-size:12px;font-weight:700;letter-spacing:.08em;cursor:pointer;text-decoration:none;transition:background .2s,color .2s,border-color .2s}
+.hd-btn[hidden]{display:none}
+/* mode connecté : liseré orange en haut de l'écran */
+body.is-admin::before{content:"";position:fixed;left:0;right:0;top:0;height:5px;background:var(--safe);z-index:1000;pointer-events:none}
+body.bo-open .hd-bo{background:var(--safe);border-color:var(--safe);color:#fff}
 .hd-btn:hover,.hd-btn:focus-visible{background:var(--safe);border-color:var(--safe);color:#fff}
 .hd-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round}
 @media (max-width:760px){.hd-tools{gap:6px;top:27px;transform:none}header.top.compact .hd-tools{top:16px}.hd-btn{width:32px;height:32px}.hd-btn svg{width:15px;height:15px}}
@@ -567,7 +571,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
       <a class="btn-cta" id="storeLink" href="#boutique" data-i18n="prints">Tirages →</a>
       <i class="nx" aria-hidden="true"></i>
     </nav>
-    <div class="hd-tools"><button type="button" class="hd-btn" id="cartBtn" aria-label="Panier" data-i18n-aria="cart" title="Panier"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12.5H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span class="cart-n" id="cartN" hidden>0</span></button><a class="hd-btn" id="mailBtn" href="#contact" aria-label="Contact" title="Contact"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg></a><button type="button" class="hd-btn lang" id="langBtn" aria-label="Switch to English">EN</button></div>
+    <div class="hd-tools"><button type="button" class="hd-btn" id="cartBtn" aria-label="Panier" data-i18n-aria="cart" title="Panier"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12.5H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span class="cart-n" id="cartN" hidden>0</span></button><a class="hd-btn" id="mailBtn" href="#contact" aria-label="Contact" title="Contact"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg></a><button type="button" class="hd-btn lang" id="langBtn" aria-label="Switch to English">EN</button><button type="button" class="hd-btn hd-bo" id="hdBo" hidden aria-label="Back office" title="Back office"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button></div>
   </div>
 </header>
 
@@ -1397,6 +1401,8 @@ try{authed=sessionStorage.getItem('cf-auth')==='1'}catch(_){}
 /* Mot de passe désactivé pendant la phase de prototype : passer à true pour le réactiver */
 const REQUIRE_PASSWORD=SITE_LIVE;
 if(!REQUIRE_PASSWORD)authed=true;else authed=!!TOKEN;
+/* connecté : liseré orange, bouton back office dans l'en-tête, lien « Connexion » masqué */
+function adminUI(){const on=BO_ENABLED&&authed;document.body.classList.toggle('is-admin',on);$('#hdBo').hidden=!on;$('#openBo').hidden=on||!BO_ENABLED}
 async function hash(s){
   if(!(window.crypto&&crypto.subtle))return 'plain:'+s;
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('cf-proto:'+s));
@@ -1406,13 +1412,15 @@ async function hash(s){
 /* back office : actif sur le prototype, désactivé sur le site public tant qu'il n'est pas protégé par un vrai compte */
 const BO_ENABLED=true;
 if(!BO_ENABLED){$('#openBo').hidden=true}
+adminUI();
+$('#hdBo').onclick=()=>{if(bo.classList.contains('open'))closeBo(true);else openBo()};
 const setHdrH=()=>document.documentElement.style.setProperty('--hdrH',Math.round(document.querySelector('header.top').getBoundingClientRect().bottom)+'px');
 addEventListener('resize',()=>{if(bo.classList.contains('open'))setHdrH()});
 if('ResizeObserver' in window)new ResizeObserver(()=>{if(bo.classList.contains('open'))setHdrH()}).observe(document.querySelector('header.top'));
 function openBo(){if(!BO_ENABLED)return;setHdrH();document.body.classList.add('bo-open');bo.classList.add('open');bo.setAttribute('aria-hidden','false');scrim.classList.add('on');renderBo();($('#lg-pw')||$('#closeBo')).focus()}
 function closeBo(noFocus){document.body.classList.remove('bo-open');bo.classList.remove('open');bo.setAttribute('aria-hidden','true');scrim.classList.remove('on');if(noFocus!==true)$('#openBo').focus({preventScroll:true})}
 /* un clic dans l'en-tête (logo, menu, panier, contact, langue) referme le back office */
-document.querySelector('header.top').addEventListener('click',e=>{if(bo.classList.contains('open')&&e.target.closest('a,button'))closeBo(true)},true);
+document.querySelector('header.top').addEventListener('click',e=>{if(bo.classList.contains('open')&&e.target.closest('a,button')&&!e.target.closest('#hdBo'))closeBo(true)},true);
 $('#openBo').onclick=openBo;$('#closeBo').onclick=closeBo;scrim.onclick=closeBo;
 document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;document.querySelectorAll('.tabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));renderBo();$('#boBody').scrollTop=0});
 
@@ -1543,7 +1551,7 @@ $('#boBody').addEventListener('submit',async e=>{
     msg.textContent='Connexion…';
     try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});const d=await r.json().catch(()=>({}));
       if(!r.ok){msg.textContent=d.error||'Connexion impossible.';$('#lg-pw').select();return}
-      TOKEN=d.token;try{sessionStorage.setItem('cf-tok',TOKEN);localStorage.setItem('cf-nostat','1')}catch(_){}authed=true;renderBo();pubUI();}catch(_){msg.textContent='Connexion impossible.'}
+      TOKEN=d.token;try{sessionStorage.setItem('cf-tok',TOKEN);localStorage.setItem('cf-nostat','1')}catch(_){}authed=true;adminUI();renderBo();pubUI();}catch(_){msg.textContent='Connexion impossible.'}
     return;
   }
   if(!pwHash){
@@ -1551,10 +1559,10 @@ $('#boBody').addEventListener('submit',async e=>{
     if(pw!==$('#lg-pw2').value){msg.textContent='Les deux mots de passe ne correspondent pas.';return}
     pwHash=await hash(pw);await DB.put('kv','pw',pwHash);
   }else if(await hash(pw)!==pwHash){msg.textContent='Mot de passe incorrect.';$('#lg-pw').select();return}
-  authed=true;try{sessionStorage.setItem('cf-auth','1')}catch(_){}
+  authed=true;adminUI();try{sessionStorage.setItem('cf-auth','1')}catch(_){}
   renderBo();
 });
-$('#logout').onclick=()=>{authed=false;TOKEN='';try{sessionStorage.removeItem('cf-auth');sessionStorage.removeItem('cf-tok')}catch(_){}closeBo()};
+$('#logout').onclick=()=>{authed=false;TOKEN='';adminUI();try{sessionStorage.removeItem('cf-auth');sessionStorage.removeItem('cf-tok')}catch(_){}closeBo()};
 $('#boBody').addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.k){S[t.dataset.k]=t.value;save();renderSite();return}
@@ -1798,7 +1806,7 @@ async function publish(){
     DIRTY=false;PUB_AT=d.updated||new Date().toISOString();await DB.put('kv','dirty',false);await DB.put('kv','state2',JSON.parse(JSON.stringify(S)));
     pubUI();st.textContent='Publié ✓ · visible par tous les visiteurs';renderSite();renderBo();
   }catch(e){
-    if(e.message==='session'){authed=false;TOKEN='';try{sessionStorage.removeItem('cf-tok')}catch(_){}renderBo();st.textContent='Session expirée : reconnectez-vous, vos modifications sont conservées.'}
+    if(e.message==='session'){authed=false;TOKEN='';adminUI();try{sessionStorage.removeItem('cf-tok')}catch(_){}renderBo();st.textContent='Session expirée : reconnectez-vous, vos modifications sont conservées.'}
     else st.textContent='La publication a échoué ('+e.message+'). Réessayez.';
     b.disabled=false;
   }
