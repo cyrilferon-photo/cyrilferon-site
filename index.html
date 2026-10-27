@@ -674,7 +674,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
 
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Visionneuse" data-i18n-aria="viewer">
   <div class="stage"><img id="lbImg" alt=""><span class="logo lb-logo" id="lbLogo" aria-hidden="true"></span></div>
-  <div class="bar mono"><button type="button" id="lbPrev" data-i18n="lbPrev">← Préc.</button><span class="lb-mid"><span class="lb-info"><span id="lbTitle"></span><span id="lbPos"></span></span><button type="button" class="lb-cta" id="lbReq" data-i18n="lbReq">Demander un tirage</button><a class="lb-cta" id="lbBuy" href="#" target="_blank" rel="noopener" hidden data-i18n="lbBuy">Voir le tirage en vente ↗</a></span><span style="display:flex;gap:8px"><button type="button" id="lbNext" data-i18n="lbNext">Suiv. →</button><button type="button" id="lbClose" data-i18n="lbClose">Fermer</button></span></div>
+  <div class="bar mono"><button type="button" id="lbPrev" data-i18n="lbPrev">← Préc.</button><span class="lb-mid"><span class="lb-info"><span id="lbTitle"></span><span id="lbPos"></span></span><button type="button" class="lb-cta" id="lbReq" data-i18n="lbReq">Demander un tirage</button><button type="button" class="lb-cta" id="lbSell" hidden>Proposer à la vente</button><a class="lb-cta" id="lbBuy" href="#" target="_blank" rel="noopener" hidden data-i18n="lbBuy">Voir le tirage en vente ↗</a></span><span style="display:flex;gap:8px"><button type="button" id="lbNext" data-i18n="lbNext">Suiv. →</button><button type="button" id="lbClose" data-i18n="lbClose">Fermer</button></span></div>
 </div>
 
 <div class="legal" id="cgv" hidden role="dialog" aria-modal="true" aria-labelledby="cgvT">
@@ -1377,10 +1377,15 @@ $('#lbImg').addEventListener('load',placeLbLogo);addEventListener('resize',()=>{
 function showLb(){const p=lbList[lbI];track('p',p);$('#lbLogo').classList.remove('on');$('#lbImg').src=lbSrc(p);if($('#lbImg').complete)requestAnimationFrame(placeLbLogo);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
   $('#lbTitle').textContent=galName(galOf(p))||'';
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
-  const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?(USE_PATH?STORE_PATH:'#boutique'):(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
+  const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);const adm=document.body.classList.contains('is-admin');$('#lbReq').hidden=!!(u||shop)||noReq||adm;$('#lbSell').hidden=!adm||shop;$('#lbBuy').href=shop?(USE_PATH?STORE_PATH:'#boutique'):(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
 /* photos sans bouton « Demander un tirage » (ex. photo exposée, pas d'édition prévue) */
 const NO_PRINT=new Set(['photos/nu-artistique--silhouette-01.jpg','photos/nu-artistique--sloane-10.jpg','photos/nu-artistique--cerizvodka-03.jpg']);
 function noPrint(p){const m=S.meta&&S.meta[p];if(m&&typeof m.noPrint==='boolean')return m.noPrint;return NO_PRINT.has(p)}
+/* créer un tirage à partir d'une photo : l'ajoute à la boutique et ouvre sa fiche dans le back office (titre, prix) */
+function sellPhoto(q){let i=S.store.findIndex(x=>x.p===q);if(i<0){S.store.push({p:q,title:''});i=S.store.length-1;save();syncStore();renderSite()}
+  if(!bo.classList.contains('open'))openBo();
+  tab='shop';boPick=false;document.querySelectorAll('.tabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab==='shop'));renderBo();$('#boBody').scrollTop=0;const inp=document.querySelector('#boBody [data-st="'+i+'"]');if(inp){inp.scrollIntoView({block:'center'});inp.focus()}}
+$('#lbSell').onclick=()=>{const p=lbList[lbI];closeLb();sellPhoto(p)};
 $('#lbReq').onclick=()=>{const p=lbList[lbI],g=galOf(p);closeLb();
   $('#f-subject').value='print';if(g)$('#f-gal').value=g.name;
   $('#f-msg').value=t('reqMsg',{p:photoTitle(p)||photoLabel(p),g:galName(g)});
@@ -1652,8 +1657,7 @@ $('#boBody').addEventListener('click',e=>{
   if(a==='cover')g.cover=b.dataset.p;
   if(a==='hero'){const q=b.dataset.p;S.heroList=Array.isArray(S.heroList)?S.heroList:[...HERO_SEED];const k=S.heroList.indexOf(q);if(k>=0)S.heroList.splice(k,1);else S.heroList.push(q)}
   if(a==='np'){const q=b.dataset.p;S.meta[q]=Object.assign({},S.meta[q]);S.meta[q].noPrint=!noPrint(q);if(!S.meta[q].noPrint&&NO_PRINT.has(q))S.meta[q].noPrint=false}
-  if(a==='sell'){const q=b.dataset.p;let i=S.store.findIndex(x=>x.p===q);if(i<0){S.store.push({p:q,title:''});i=S.store.length-1;save();syncStore();renderSite()}
-    tab='shop';boPick=false;document.querySelectorAll('.tabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab==='shop'));renderBo();$('#boBody').scrollTop=0;const inp=document.querySelector('#boBody [data-st="'+i+'"]');if(inp){inp.scrollIntoView({block:'center'});inp.focus()}return}
+  if(a==='sell'){sellPhoto(b.dataset.p);return}
   if(a==='rm')removePhoto(g,b.dataset.p);
   if(a==='delg'){
     if(armDel!==g.id){armDel=g.id}
