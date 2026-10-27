@@ -395,6 +395,9 @@ body.bo-open .scrim{display:none}
 .bo-pub .mono{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .bo-pub .mono.dirty{color:#f0a04b}
 .bo-pub .send{padding:9px 16px}
+.top-btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+#pubBtn{padding:9px 16px}#pubBtn:disabled{opacity:.45;cursor:default}
+#pubBtn:not(:disabled){background:var(--safe);border-color:var(--safe);color:#fff}
 .pub-btns{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
 .pub-btns .out{padding:9px 14px}
 .bo-pub .send:disabled{opacity:.45;cursor:default}
@@ -802,8 +805,8 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
 <div class="scrim" id="scrim"></div>
 <aside class="bo" id="bo" aria-label="Back office" aria-hidden="true">
   <div class="bo-head">
-    <div class="top-row"><h2>Back office</h2><span style="display:flex;gap:8px"><button type="button" class="out" id="logout" hidden>Se déconnecter</button><button class="x" id="closeBo" type="button" aria-label="Fermer le back office">×</button></span></div>
-    <div class="bo-pub" id="boPub"><span class="mono" id="pubState"></span><span class="pub-btns"><button type="button" class="out" id="sendClaude" hidden>Envoyer mes modifications à Claude</button><button type="button" class="send" id="pubBtn">Publier sur le site</button></span></div>
+    <div class="top-row"><h2>Back office</h2><span class="top-btns"><button type="button" class="send" id="pubBtn">Publier sur le site</button><button type="button" class="out" id="logout" hidden>Se déconnecter</button><button class="x" id="closeBo" type="button" aria-label="Fermer le back office">×</button></span></div>
+    <div class="bo-pub" id="boPub"><span class="mono" id="pubState"></span><span class="pub-btns"><button type="button" class="out" id="sendClaude" hidden>Envoyer mes modifications à Claude</button></span></div>
     <div class="tabs" id="tabs" role="tablist">
       <button type="button" role="tab" data-tab="gal" aria-selected="true">Galeries</button>
       <button type="button" role="tab" data-tab="txt" aria-selected="false">Textes</button>
@@ -1839,7 +1842,7 @@ setTimeout(loadIg,300);
 
 /* ================= PUBLIER (back office → site en ligne) ================= */
 function pubUI(){const st=$('#pubState'),b=$('#pubBtn');if(!st)return;
-  $('#boPub').hidden=!authed;
+  $('#boPub').hidden=!authed;b.hidden=!authed||!SITE_LIVE;
   if(!SITE_LIVE){st.className='mono';st.textContent='';b.disabled=true;return}
   b.disabled=!DIRTY;st.className='mono'+(DIRTY?' dirty':'');
   st.textContent=DIRTY?'Modifications non publiées':('Tout est publié'+(PUB_AT?' · '+new Date(PUB_AT).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):''))}
