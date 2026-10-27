@@ -9,6 +9,9 @@
   // Base de données du site (contenu publié, stocks, commandes, photos du back office, messages)
   "durable_objects": { "bindings": [{ "name": "SITE", "class_name": "SiteStore" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SiteStore"] }],
+  // Envoi des messages du formulaire de contact vers la boîte de Cyril (Email Routing)
+  "send_email": [{ "name": "EMAIL", "destination_address": "cyrilferon@gmail.com" }],
+  "vars": { "MAIL_FROM": "site@cyrilferon.com", "MAIL_TO": "cyrilferon@gmail.com" },
   // Garde les variables saisies dans le tableau de bord Cloudflare à chaque déploiement
   "keep_vars": true,
   "observability": { "enabled": true }
