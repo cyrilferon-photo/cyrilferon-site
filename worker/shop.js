@@ -1,8 +1,6 @@
 // Catalogue, prix, zones de livraison et éditions — source de vérité côté serveur.
 // Le site affiche les mêmes valeurs, mais seuls ces chiffres-ci comptent au paiement.
-import { getStore } from "@netlify/blobs";
-
-// Édition de 30 exemplaires par photo, tous formats confondus.
+import { db } from "./store.js";
 
 export const FORMATS = {
   "24x30": { label: "24 × 30 cm", price: 90, edition: 15 },
@@ -10,7 +8,7 @@ export const FORMATS = {
   "50x70": { label: "50 × 70 cm", price: 320, edition: 5 },
 };
 
-// Catalogue par défaut ; remplacé par celui publié depuis le back office (site/content → store).
+// Catalogue par défaut ; remplacé par celui publié depuis le back office (contenu publié → store).
 export const PRODUCTS = {
   "photos/nu-artistique--sloane-06-v3.jpg": "OFF - Sloane",
   "photos/nu-artistique--cerizvodka-15.jpg": "FLOWERS - Cerizvodka",
@@ -40,9 +38,9 @@ export const ZONES = {
 
 const OK_PATH = /^(photos\/[a-z0-9-]+\.jpg|media\/[A-Za-z0-9_-]{6,40}\.(jpg|png|webp))$/;
 const baseTitle = (p) => p.replace(/^.*--/, "").replace(/\.[a-z]+$/, "").replace(/(^|-)([a-z])/g, (m, a, b) => a + b.toUpperCase());
-export async function getCatalog() {
+export async function getCatalog(env) {
   try {
-    const c = await getStore({ name: "site", consistency: "strong" }).get("content", { type: "json" });
+    const c = await db(env).get("content");
     const list = c?.content?.store, defs = c?.content?.prices || {};
     const okP = (v) => Number.isInteger(+v) && +v >= 1 && +v <= 100000;
     const base = Object.fromEntries(Object.keys(FORMATS).map((f) => [f, okP(defs[f]) ? +defs[f] : FORMATS[f].price]));
@@ -64,23 +62,20 @@ export async function getCatalog() {
 export const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 
-export const editions = () => getStore({ name: "editions", consistency: "strong" });
-export const orders = () => getStore({ name: "orders", consistency: "strong" });
-export const pending = () => getStore({ name: "pending", consistency: "strong" });
-
 export const key = (p, f) => `${p}|${f}`;
+export const edKey = (k) => "ed:" + k;
 
-export async function soldCount(store, k) {
-  const v = await store.get(k, { type: "json" });
+export async function soldCount(env, k) {
+  const v = await db(env).get(edKey(k));
   return v && Number.isInteger(v.sold) ? v.sold : (SOLD_BEFORE[k] || 0);
 }
 
 // Vérifie le panier envoyé par le navigateur et recalcule tout côté serveur.
-export async function checkCart(body) {
+export async function checkCart(env, body) {
   const items = Array.isArray(body?.items) ? body.items : [];
   const zone = ZONES[body?.zone] ? body.zone : null;
   if (!items.length || items.length > 30) throw new Error("Panier vide ou invalide.");
-  const CAT = await getCatalog();
+  const CAT = await getCatalog(env);
   if (!zone) throw new Error("Zone de livraison invalide.");
   const merged = {};
   for (const it of items) {
@@ -88,11 +83,10 @@ export async function checkCart(body) {
     if (!CAT[it?.p] || !FORMATS[it?.f] || !Number.isInteger(q) || q < 1 || q > FORMATS[it.f].edition) throw new Error("Article invalide.");
     merged[key(it.p, it.f)] = (merged[key(it.p, it.f)] || 0) + q;
   }
-  const store = editions();
   const lines = [];
   for (const [k, q] of Object.entries(merged)) {
     const [p, f] = k.split("|");
-    const sold = await soldCount(store, k);
+    const sold = await soldCount(env, k);
     const cap = FORMATS[f].edition;
     if (sold + q > cap) throw new Error(sold >= cap ? `${CAT[p].title} ${FORMATS[f].label} : épuisé.` : `${CAT[p].title} ${FORMATS[f].label} : plus que ${cap - sold} exemplaire(s) disponible(s).`);
     lines.push({ p, f, q, title: CAT[p].title, label: FORMATS[f].label, price: CAT[p].prices[f] });
@@ -103,14 +97,12 @@ export async function checkCart(body) {
 }
 
 // Attribue les numéros d'exemplaire après un paiement confirmé.
-export async function assignNumbers(lines) {
-  const store = editions();
+export async function assignNumbers(env, lines) {
   const out = [];
   for (const l of lines) {
     const k = key(l.p, l.f);
-    const sold = await soldCount(store, k);
+    const sold = await db(env).addSold(edKey(k), l.q, SOLD_BEFORE[k] || 0); // atomique
     const numbers = Array.from({ length: l.q }, (_, i) => sold + i + 1);
-    await store.setJSON(k, { sold: sold + l.q, updated: new Date().toISOString() });
     out.push({ ...l, numbers: numbers.map((n) => `${n}/${FORMATS[l.f].edition}`) });
   }
   return out;
@@ -125,9 +117,9 @@ export function cartMeta(lines) {
   for (let i = 0, k = 0; i < s.length; i += 480, k++) out["cart" + k] = s.slice(i, i + 480);
   return out;
 }
-export async function expandCartMeta(meta) {
+export async function expandCartMeta(env, meta) {
   const s = Object.keys(meta || {}).filter((k) => /^cart\d+$/.test(k)).sort((a, b) => +a.slice(4) - +b.slice(4)).map((k) => meta[k]).join("");
-  const CAT = await getCatalog();
+  const CAT = await getCatalog(env);
   return s.split(";").filter(Boolean).map((x) => {
     const [pp, f, q] = x.split("|"); const p = dec(pp);
     return { p, f, q: Number(q), title: CAT[p]?.title || PRODUCTS[p] || p, label: FORMATS[f]?.label, price: CAT[p]?.prices?.[f] ?? FORMATS[f]?.price };
