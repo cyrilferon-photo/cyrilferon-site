@@ -25,6 +25,15 @@ export class SiteStore extends DurableObject {
     await this.ctx.storage.put(k, { sold, updated: new Date().toISOString() });
     return true;
   }
+  // Supprime toutes les clés d'un préfixe (remise à zéro avant l'ouverture).
+  async purge(prefix) {
+    let n = 0;
+    for (;;) {
+      const keys = [...(await this.ctx.storage.list({ prefix, limit: 128 })).keys()];
+      if (!keys.length) return n;
+      await this.ctx.storage.delete(keys); n += keys.length;
+    }
+  }
   async mediaPut(key, type, buf) {
     const bytes = new Uint8Array(buf);
     const parts = Math.ceil(bytes.length / CHUNK);

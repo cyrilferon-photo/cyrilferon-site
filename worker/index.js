@@ -202,6 +202,17 @@ async function ordersList(req, env) {
   return json({ orders: list.map((x) => x.v).sort((a, b) => String(b.date).localeCompare(String(a.date))) });
 }
 
+// Remise à zéro avant l'ouverture : supprime commandes et compteurs (les ventes d'avant restent comptées).
+async function reset(req, env) {
+  if (req.method !== "POST") return notAllowed();
+  if (!(await isAdmin(env, req))) return json({ error: "Session expirée, reconnectez-vous." }, 401);
+  let b; try { b = await req.json(); } catch {}
+  if (b?.confirm !== "EFFACER") return json({ error: "Confirmation manquante." }, 400);
+  const s = db(env);
+  const n = { orders: await s.purge("order:"), editions: await s.purge("ed:"), pending: await s.purge("pending:") };
+  return json({ ok: true, ...n });
+}
+
 // ---------- back office ----------
 async function login(req, env) {
   if (req.method !== "POST") return notAllowed();
@@ -327,6 +338,7 @@ export default {
         case "/api/config": return config(env);
         case "/api/stock": return await stock(req, env);
         case "/api/orders": return await ordersList(req, env);
+        case "/api/reset": return await reset(req, env);
         case "/api/stripe-checkout": return await stripeCheckout(req, env);
         case "/api/stripe-webhook": return await stripeWebhook(req, env);
         case "/api/paypal-create": return await paypalCreate(req, env);

@@ -1428,7 +1428,7 @@ function renderBo(){
       <div class="st-sum"><div><strong>${tot}</strong><span>tirages vendus</span></div><div><strong>${money(ca)}</strong><span>de ventes (hors port, aux prix actuels)</span></div><div><strong>${STORE_PHOTOS.length*30-tot}</strong><span>exemplaires restants</span></div></div>
       <ul class="st-list">${rows}</ul>
       <p class="hint">Édition de 30 par photo : 15 en 24 × 30, 10 en 40 × 50, 5 en 50 × 70. Orange : derniers exemplaires (alerte affichée sur la fiche). Rouge : épuisé.</p>
-      <h3>Commandes</h3><div id="boList" class="bo-list"><p class="hint">${SITE_LIVE?'Chargement…':'Les commandes s’affichent ici sur le site en ligne.'}</p></div>`;
+      <h3>Commandes</h3>${SITE_LIVE?`<p class="hint"><button type="button" class="out" id="boReset">Effacer les commandes de test et remettre les stocks à zéro</button> <span id="boResetMsg"></span></p>`:''}<div id="boList" class="bo-list"><p class="hint">${SITE_LIVE?'Chargement…':'Les commandes s’affichent ici sur le site en ligne.'}</p></div>`;
     if(SITE_LIVE)boFetchList('/api/orders','orders',o=>{const ad=o.shipping&&(o.shipping.address||o.shipping);const a=ad&&ad.address?ad.address:ad;
       const addr=a?[a.name||o.shipping.name||(ad&&ad.name),a.line1||a.address_line_1,a.line2||a.address_line_2,[a.postal_code,a.city||a.admin_area_2].filter(Boolean).join(' '),a.country||a.country_code].filter(Boolean).join(', '):'';
       return `<li><div class="bl-h"><b>${esc(o.name||'')}</b><span>${new Date(o.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})} · ${o.provider==='paypal'?'PayPal':'Carte'} · ${money(o.total||0)}</span></div>
@@ -1576,6 +1576,12 @@ $('#boBody').addEventListener('click',e=>{
   }
   save();renderSite();renderBo();
 });
+document.addEventListener('click',async e=>{const b=e.target.closest('#boReset');if(!b)return;
+  if(!b.dataset.arm){b.dataset.arm='1';b.textContent='Confirmer : effacer toutes les commandes enregistrées ?';b.style.borderColor='var(--safe)';b.style.color='var(--safe)';return}
+  b.disabled=true;const m=$('#boResetMsg');
+  try{const r=await fetch('/api/reset',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({confirm:'EFFACER'})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Erreur');
+    m.textContent=`Fait : ${d.orders} commande(s) effacée(s). Les ventes d’avant l’ouverture restent comptées.`;await loadStock();renderBo()}
+  catch(err){m.textContent=err.message;b.disabled=false}});
 async function boFetchList(url,key,row){const box=$('#boList');if(!box)return;
   try{const r=await fetch(url,{headers:{Authorization:'Bearer '+TOKEN},cache:'no-store'});if(r.status===401){box.innerHTML='<p class="hint">Session expirée : reconnectez-vous.</p>';return}
     const d=await r.json();const L=d[key]||[];if($('#boList')!==box)return;
