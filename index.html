@@ -451,6 +451,12 @@ body.bo-open .scrim{display:none}
 .sm-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 .sm-pick .out{justify-self:start}
 .bo-list>ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}.bo-list>ul>li{border:1px solid var(--line);padding:14px 16px}.bo-list ul ul{margin:8px 0;padding-left:18px}.bl-h{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.bl-h span{font-size:12px;color:var(--mute)}.bl-m{white-space:pre-wrap;margin:8px 0}.bl-f{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.bl-del{font-size:11px;padding:6px 10px}
+.stx-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.stx-per{display:flex;gap:6px;flex-wrap:wrap}.stx-per button{font-size:11px;padding:6px 10px}.stx-per button.on{border-color:var(--safe);color:var(--safe)}
+.stx-chart{display:flex;align-items:flex-end;gap:2px;height:120px;margin:18px 0 4px;border-bottom:1px solid var(--line)}.stx-chart span{flex:1;height:100%;display:flex;align-items:flex-end}.stx-chart i{display:block;width:100%;background:var(--safe);min-height:1px;opacity:.85}.stx-chart span:hover i{opacity:1}
+.stx-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);margin-bottom:8px}
+.stx-bars{list-style:none;margin:0;padding:0;display:grid;gap:6px}.stx-bars li{display:grid;grid-template-columns:minmax(0,220px) 1fr 40px;gap:10px;align-items:center;font-size:13px}.stx-l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stx-b{height:8px;background:var(--line)}.stx-b i{display:block;height:100%;background:var(--safe)}.stx-bars b{text-align:right;font-family:var(--f-mono)}
+.stx-ph{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}.stx-ph li{position:relative}.stx-ph img,.stx-x{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:var(--line)}.stx-ph b{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.75);color:#fff;font:10px var(--f-mono);padding:2px 5px}
+@media (max-width:600px){.stx-bars li{grid-template-columns:minmax(0,130px) 1fr 34px}}
 .st-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .st-sum div{border:1px solid var(--line);padding:10px;display:grid;gap:2px}
 .st-sum strong{font-family:var(--f-display);font-stretch:80%;font-size:22px}
@@ -765,6 +771,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
       <button type="button" role="tab" data-tab="shop" aria-selected="false">Boutique</button>
       <button type="button" role="tab" data-tab="stock" aria-selected="false" class="tab-r">Stocks</button>
       <button type="button" role="tab" data-tab="msg" aria-selected="false">Messages</button>
+      <button type="button" role="tab" data-tab="stats" aria-selected="false">Stats</button>
     </div>
   </div>
   <div class="bo-body" id="boBody"></div>
@@ -845,7 +852,7 @@ function frameHTML(id,label,i){
 }
 
 /* ---------- public site ---------- */
-function renderSite(){if(typeof syncStore==='function'&&STORE_PHOTOS)syncStore();
+function renderSite(){if(S.open){const og=S.galleries.find(x=>x.id===S.open);if(og)track('g',og.name)}if(typeof syncStore==='function'&&STORE_PHOTOS)syncStore();
   $('#tagline').textContent=LANG==='en'?(S.taglineEn||S.tagline):S.tagline;
   const total=S.galleries.reduce((a,g)=>a+g.photos.length,0);
   const sig=(S.heroList||[]).join(',')+'|'+S.galleries.map(g=>g.name+':'+g.photos.length).join(',');
@@ -890,6 +897,17 @@ $('#galGrid').addEventListener('load',e=>{if(e.target.tagName==='IMG')e.target.c
 /* one address per gallery: #portraits, #metiers… ; browser back button works */
 const slugOf=g=>g?g.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''):'';
 const galFromHash=()=>{const h=decodeURIComponent(location.hash.slice(1));return h?S.galleries.find(g=>slugOf(g)===h):null};
+/* statistiques de visite anonymes (sans cookie) : envoyées seulement sur le site en ligne, jamais depuis le navigateur de Cyril */
+const STAT_SEEN=new Set();
+function track(t,k){try{
+  if(!/(^|\.)workers\.dev$|(^|\.)cyrilferon\.com$/.test(location.hostname))return;
+  if(localStorage.getItem('cf-nostat'))return;
+  if(sessionStorage.getItem('cf-tok')){localStorage.setItem('cf-nostat','1');return}
+  if(t!=='v'){const id=t+'|'+k;if(STAT_SEEN.has(id))return;STAT_SEEN.add(id)}
+  const body=JSON.stringify({t,k});
+  if(!(navigator.sendBeacon&&navigator.sendBeacon('/api/hit',new Blob([body],{type:'text/plain'}))))fetch('/api/hit',{method:'POST',body,keepalive:true}).catch(()=>{});
+}catch(_){}}
+try{if(!sessionStorage.getItem('cf-v')){sessionStorage.setItem('cf-v','1');let r='';try{const h=new URL(document.referrer).hostname.replace(/^www\./,'');if(h&&!/cyrilferon\.com$|workers\.dev$/.test(h))r=h}catch(_){}track('v',r)}}catch(_){}
 function openGallery(id,{push=true,scroll=true}={}){
   const g=S.galleries.find(x=>x.id===id);if(!g)return;
   if(isStore())showStore(false);
@@ -1049,7 +1067,7 @@ $('#storeBack').onclick=()=>{leaveStore();scrollTo(0,0)};
 /* product sheet */
 function openProduct(p,fmt){
   if(STORE_GATE&&isNuGal(galOf(p))&&!nuOk){renderStore();return}
-  pmPhoto=p;pmFmt=fmt||FORMATS[0].id;pmView='photo';$('#pmSim').hidden=true;$('#pmCredit').hidden=true;$('#pm .pm-img').classList.remove('room');document.querySelectorAll('.pm-views [data-v]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v==='photo')));
+  track('s',p);pmPhoto=p;pmFmt=fmt||FORMATS[0].id;pmView='photo';$('#pmSim').hidden=true;$('#pmCredit').hidden=true;$('#pm .pm-img').classList.remove('room');document.querySelectorAll('.pm-views [data-v]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v==='photo')));
   $('#pmImg').src=urls[p];$('#pmImg').alt=storeTitle(p);
   {const sh=PRINT_SHOTS[p]||[];document.querySelectorAll('.pm-views [data-v^="shot"]').forEach(b=>{b.hidden=!sh[+b.dataset.v.slice(4)]})}
   {const dm=DIMS[p],land=!!dm&&dm[0]>dm[1];const box=$('#pm .pm-box');box.classList.toggle('land',land);box.style.setProperty('--ar',dm?dm[0]+'/'+dm[1]:'4/5');box.style.setProperty('--arn',dm?(dm[0]/dm[1]).toFixed(4):'0.8')}
@@ -1154,7 +1172,7 @@ $('#pm').addEventListener('click',e=>{if(e.target===e.currentTarget)closePm()});
 $('#pmAdd').onclick=()=>{
   const it=CART.find(c=>c.p===pmPhoto&&c.f===pmFmt),left=leftOf(pmPhoto,pmFmt);
   if(left<=0||(it&&it.q>=left)){$('#pmMsg').textContent=t('noMore');return}
-  if(it)it.q++;else CART.push({p:pmPhoto,f:pmFmt,q:1});
+  if(it)it.q++;else CART.push({p:pmPhoto,f:pmFmt,q:1});if(pmPhoto)track('c',pmPhoto+'|'+pmFmt);
   saveCart();renderCart();$('#pmMsg').textContent=t('added');setTimeout(()=>{closePm();openCart()},500);
 };
 $('#pmQuote').onclick=()=>{const p=pmPhoto,g=galOf(p);closePm();leaveStore();
@@ -1306,7 +1324,7 @@ function placeLbLogo(){const im=$('#lbImg'),lg=$('#lbLogo'),st=im&&im.parentElem
   const r=im.getBoundingClientRect(),s=st.getBoundingClientRect(),h=Math.max(16,Math.min(30,r.width*.045));lg.style.height=h+'px';
   lg.style.left=(r.left-s.left+r.width/2)+'px';lg.style.top=(r.bottom-s.top-h-Math.max(10,r.height*.03))+'px';lg.classList.add('on')}
 $('#lbImg').addEventListener('load',placeLbLogo);addEventListener('resize',()=>{if(!$('#lb').hidden)placeLbLogo()});
-function showLb(){const p=lbList[lbI];$('#lbLogo').classList.remove('on');$('#lbImg').src=lbSrc(p);if($('#lbImg').complete)requestAnimationFrame(placeLbLogo);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
+function showLb(){const p=lbList[lbI];track('p',p);$('#lbLogo').classList.remove('on');$('#lbImg').src=lbSrc(p);if($('#lbImg').complete)requestAnimationFrame(placeLbLogo);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
   $('#lbTitle').textContent=galName(galOf(p))||'';
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
   const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);$('#lbReq').hidden=!!(u||shop)||noReq;$('#lbBuy').href=shop?(USE_PATH?STORE_PATH:'#boutique'):(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
@@ -1436,6 +1454,13 @@ function renderBo(){
         <p class="hint">${esc(o.email||'')}${o.phone?' · '+esc(o.phone):''}${addr?'<br>'+esc(addr):''}${o.zoneMismatch?'<br><b style="color:var(--safe)">Attention : pays de livraison hors de la zone payée</b>':''}</p></li>`});
     return;
   }
+  if(tab==='stats'){
+    body.innerHTML=`<div class="stx-head"><h3>Fréquentation</h3><span class="stx-per">${[7,30,90,365].map(n=>`<button type="button" class="out${boStatDays===n?' on':''}" data-stdays="${n}">${n===365?'1 an':n+' jours'}</button>`).join('')}</span></div>
+      <div id="boStats"><p class="hint">${SITE_LIVE?'Chargement…':'Les statistiques s’affichent ici sur le site en ligne.'}</p></div>
+      <p class="hint">Mesure anonyme, sans cookie ni adresse IP enregistrée. Vos propres visites (ce navigateur) ne sont pas comptées. Une visite = une personne qui arrive sur le site (onglet ouvert) ; une photo est comptée une fois par visite.</p>`;
+    if(SITE_LIVE)loadStats();
+    return;
+  }
   if(tab==='msg'){
     body.innerHTML=`<h3>Messages reçus</h3><div id="boList" class="bo-list"><p class="hint">${SITE_LIVE?'Chargement…':'Les messages du formulaire de contact s’affichent ici sur le site en ligne.'}</p></div>
       <p class="hint">Chaque message est aussi envoyé par email. Répondez directement depuis votre messagerie.</p>`;
@@ -1510,7 +1535,7 @@ $('#boBody').addEventListener('submit',async e=>{
     msg.textContent='Connexion…';
     try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});const d=await r.json().catch(()=>({}));
       if(!r.ok){msg.textContent=d.error||'Connexion impossible.';$('#lg-pw').select();return}
-      TOKEN=d.token;try{sessionStorage.setItem('cf-tok',TOKEN)}catch(_){}authed=true;renderBo();pubUI();}catch(_){msg.textContent='Connexion impossible.'}
+      TOKEN=d.token;try{sessionStorage.setItem('cf-tok',TOKEN);localStorage.setItem('cf-nostat','1')}catch(_){}authed=true;renderBo();pubUI();}catch(_){msg.textContent='Connexion impossible.'}
     return;
   }
   if(!pwHash){
@@ -1588,6 +1613,29 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-msgd
   try{const r=await fetch('/api/messages?id='+encodeURIComponent(b.dataset.msgdel),{method:'DELETE',headers:{Authorization:'Bearer '+TOKEN}});if(!r.ok)throw 0;b.closest('li').remove();
     const box=$('#boList');if(box&&!box.querySelector('li'))box.innerHTML='<p class="hint">Aucun pour le moment.</p>'}
   catch(_){b.disabled=false;b.textContent='Échec, réessayer'}});
+let boStatDays=30;
+document.addEventListener('click',e=>{const b=e.target.closest('[data-stdays]');if(!b)return;boStatDays=+b.dataset.stdays;renderBo()});
+async function loadStats(){const box=$('#boStats');if(!box)return;
+  try{const r=await fetch('/api/stats?days='+boStatDays,{headers:{Authorization:'Bearer '+TOKEN},cache:'no-store'});if(r.status===401){box.innerHTML='<p class="hint">Session expirée : reconnectez-vous.</p>';return}
+    const d=await r.json();if($('#boStats')!==box)return;
+    const sum=(k)=>{const o={};(d.data||[]).forEach(x=>Object.entries(x[k]||{}).forEach(([a,n])=>o[a]=(o[a]||0)+n));return Object.entries(o).sort((a,b)=>b[1]-a[1])};
+    const byDay={};(d.data||[]).forEach(x=>byDay[x.day]=x.v||0);
+    const days=[];for(let i=boStatDays-1;i>=0;i--){const k=new Date(Date.now()-i*864e5).toISOString().slice(0,10);days.push([k,byDay[k]||0])}
+    const tot=days.reduce((a,x)=>a+x[1],0),max=Math.max(1,...days.map(x=>x[1]));
+    const G=sum('g'),P=sum('p'),Sv=sum('s'),C=sum('c'),R=sum('ref');
+    const pv=P.reduce((a,x)=>a+x[1],0);
+    const bar=(rows,lab,fmt)=>{const m=Math.max(1,...rows.map(x=>x[1]));return rows.length?`<ul class="stx-bars">${rows.map(([k,n])=>`<li><span class="stx-l">${lab(k)}</span><span class="stx-b"><i style="width:${Math.round(n/m*100)}%"></i></span><b>${n}</b></li>`).join('')}</ul>`:'<p class="hint">Pas encore de données.</p>'};
+    const ph=(rows)=>rows.length?`<ul class="stx-ph">${rows.map(([p,n])=>`<li title="${esc(galName(galOf(p))||'')}">${urls[p]?`<img src="${urls[p]}" alt="" loading="lazy">`:'<span class="stx-x">?</span>'}<b>${n}</b></li>`).join('')}</ul>`:'<p class="hint">Pas encore de données.</p>';
+    const step=boStatDays>90?Math.ceil(boStatDays/60):1;const agg=[];for(let i=0;i<days.length;i+=step){const s=days.slice(i,i+step);agg.push([s[0][0],s.reduce((a,x)=>a+x[1],0)])}const amax=Math.max(1,...agg.map(x=>x[1]));
+    box.innerHTML=`<div class="st-sum"><div><strong>${tot}</strong><span>visites</span></div><div><strong>${(tot/boStatDays).toFixed(1).replace('.',',')}</strong><span>visites par jour en moyenne</span></div><div><strong>${pv}</strong><span>photos ouvertes en grand</span></div></div>
+      <div class="stx-chart" aria-label="Visites par jour">${agg.map(([k,n])=>`<span title="${new Date(k).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} : ${n}"><i style="height:${Math.round(n/amax*100)}%"></i></span>`).join('')}</div>
+      <div class="stx-axis"><span>${new Date(days[0][0]).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span><span>aujourd’hui</span></div>
+      <h3>Galeries les plus ouvertes</h3>${bar(G,k=>esc(k))}
+      <h3>Photos les plus regardées</h3>${ph(P.slice(0,24))}
+      <h3>Tirages consultés en boutique</h3>${bar(Sv.slice(0,12),k=>esc(storeTitle(k)||photoTitle(k)))}
+      <h3>Ajouts au panier</h3>${bar(C.slice(0,12),k=>{const[p,f]=k.split('|');const F=FORMATS.find(x=>x.id===f);return esc((storeTitle(p)||photoTitle(p))+(F?' · '+F.label:''))})}
+      <h3>D’où viennent les visiteurs</h3>${bar(R.slice(0,10),k=>esc(k))}<p class="hint">Visites venues d’un autre site (Instagram, Google…). Les visites directes (adresse tapée, favoris) n’apparaissent pas ici.</p>`}
+  catch(_){box.innerHTML='<p class="hint">Chargement impossible.</p>'}}
 async function boFetchList(url,key,row){const box=$('#boList');if(!box)return;
   try{const r=await fetch(url,{headers:{Authorization:'Bearer '+TOKEN},cache:'no-store'});if(r.status===401){box.innerHTML='<p class="hint">Session expirée : reconnectez-vous.</p>';return}
     const d=await r.json();const L=d[key]||[];if($('#boList')!==box)return;

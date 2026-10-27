@@ -213,6 +213,25 @@ async function reset(req, env) {
   return json({ ok: true, ...n });
 }
 
+// ---------- statistiques (anonymes : ni cookie, ni adresse IP enregistrée) ----------
+const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|monitor|curl|wget|python|httpclient/i;
+async function hit(req, env) {
+  if (req.method !== "POST") return notAllowed();
+  if (BOT.test(req.headers.get("user-agent") || "")) return new Response(null, { status: 204 });
+  let b; try { b = JSON.parse(await req.text()); } catch { return new Response(null, { status: 204 }); }
+  const kind = b?.t, key = String(b?.k ?? "").slice(0, 120);
+  const ok = (kind === "v" && /^[a-z0-9.-]{0,80}$/i.test(key)) || (["g", "p", "s", "c"].includes(kind) && key && !/[<>"]/.test(key));
+  if (ok) await db(env).hit(new Date().toISOString().slice(0, 10), kind, key);
+  return new Response(null, { status: 204 });
+}
+async function stats(req, env) {
+  if (!(await isAdmin(env, req))) return json({ error: "Session expirée, reconnectez-vous." }, 401);
+  const days = Math.min(400, Math.max(1, Number(new URL(req.url).searchParams.get("days")) || 30));
+  const since = new Date(Date.now() - (days - 1) * 864e5).toISOString().slice(0, 10);
+  const list = (await db(env).list("st:", 400)).filter((x) => x.k.slice(3) >= since);
+  return json({ days, since, data: list.map((x) => ({ day: x.k.slice(3), ...x.v })) });
+}
+
 // ---------- back office ----------
 async function login(req, env) {
   if (req.method !== "POST") return notAllowed();
@@ -355,6 +374,8 @@ export default {
         case "/api/contact": return await contact(req, env, ctx);
         case "/api/messages": return await messages(req, env);
         case "/api/instagram": return await instagram(req, ctx);
+        case "/api/hit": return await hit(req, env);
+        case "/api/stats": return await stats(req, env);
       }
       if (p.startsWith("/api/media/")) return await media(p.slice(11), env, ctx, req);
       if (p.startsWith("/api/")) return json({ error: "Introuvable." }, 404);

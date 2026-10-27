@@ -34,6 +34,19 @@ export class SiteStore extends DurableObject {
       await this.ctx.storage.delete(keys); n += keys.length;
     }
   }
+  // Statistiques de visite anonymes : un document par jour, compteurs incrémentés ici (atomique).
+  async hit(day, kind, key) {
+    const k = "st:" + day;
+    const d = (await this.ctx.storage.get(k)) || { v: 0 };
+    if (kind === "v") { d.v = (d.v || 0) + 1; if (key) { d.ref = d.ref || {}; d.ref[key] = (d.ref[key] || 0) + 1; } }
+    else {
+      const m = (d[kind] = d[kind] || {});
+      if (m[key] === undefined && Object.keys(m).length >= 1000) return false;
+      m[key] = (m[key] || 0) + 1;
+    }
+    await this.ctx.storage.put(k, d);
+    return true;
+  }
   async mediaPut(key, type, buf) {
     const bytes = new Uint8Array(buf);
     const parts = Math.ceil(bytes.length / CHUNK);
