@@ -303,7 +303,13 @@ async function sendMail(env, m) {
 
 async function messages(req, env) {
   if (!(await isAdmin(env, req))) return json({ error: "Session expirée, reconnectez-vous." }, 401);
-  return json({ messages: (await db(env).list("msg:", 200)).map((x) => x.v) });
+  if (req.method === "DELETE") {
+    const id = new URL(req.url).searchParams.get("id") || "";
+    if (!/^msg:[0-9TZ:.\-]+:[A-Za-z0-9_-]{4,12}$/.test(id)) return json({ error: "Message introuvable." }, 400);
+    await db(env).del(id);
+    return json({ ok: true });
+  }
+  return json({ messages: (await db(env).list("msg:", 200)).map((x) => ({ id: x.k, ...x.v })) });
 }
 
 // ---------- Instagram (Behold), mis en cache 1 h ----------
