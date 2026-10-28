@@ -590,7 +590,7 @@ footer .wrap .cx.tl{left:calc(var(--gut) - 6px)} footer .wrap .cx.tr{right:calc(
       <a class="btn-cta" id="storeLink" href="#boutique" data-i18n="prints">Tirages →</a>
       <i class="nx" aria-hidden="true"></i>
     </nav>
-    <div class="hd-tools"><button type="button" class="hd-btn" id="cartBtn" aria-label="Panier" data-i18n-aria="cart" title="Panier"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12.5H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span class="cart-n" id="cartN" hidden>0</span></button><a class="hd-btn" id="mailBtn" href="#contact" aria-label="Contact" title="Contact"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg></a><button type="button" class="hd-btn lang" id="langBtn" aria-label="Switch to English">EN</button><button type="button" class="hd-btn hd-bo" id="hdBo" hidden aria-label="Back office" title="Back office"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button></div>
+    <div class="hd-tools"><button type="button" class="hd-btn" id="cartBtn" aria-label="Panier" data-i18n-aria="cart" title="Panier"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12.5H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span class="cart-n" id="cartN" hidden>0</span></button><a class="hd-btn" id="mailBtn" href="#contact" aria-label="Contact" title="Contact"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg></a><button type="button" class="hd-btn lang" id="langBtn" aria-label="Switch to English">EN</button><button type="button" class="hd-btn hd-bo" id="hdBo" hidden aria-label="Back office" title="Back office"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button type="button" class="hd-btn hd-out" id="hdOut" hidden aria-label="Se déconnecter" title="Se déconnecter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4H5v16h9"/><path d="M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></svg></button></div>
   </div>
 </header>
 
@@ -1482,7 +1482,7 @@ try{authed=sessionStorage.getItem('cf-auth')==='1'}catch(_){}
 const REQUIRE_PASSWORD=SITE_LIVE;
 if(!REQUIRE_PASSWORD)authed=true;else authed=!!TOKEN;
 /* connecté : liseré orange, bouton back office dans l'en-tête, lien « Connexion » masqué */
-function adminUI(){const on=BO_ENABLED&&authed;document.body.classList.toggle('is-admin',on);$('#hdBo').hidden=!on;$('#openBo').hidden=on||!BO_ENABLED;
+function adminUI(){const on=BO_ENABLED&&authed;document.body.classList.toggle('is-admin',on);$('#hdBo').hidden=!on;$('#hdOut').hidden=!on;$('#openBo').hidden=on||!BO_ENABLED;
   if(on&&!nuOk){nuOk=true;renderSite();if(isStore())renderStore()}} // connecté : pas de vérification d'âge pour le Nu artistique
 async function hash(s){
   if(!(window.crypto&&crypto.subtle))return 'plain:'+s;
@@ -1495,6 +1495,7 @@ const BO_ENABLED=true;
 if(!BO_ENABLED){$('#openBo').hidden=true}
 adminUI();
 $('#hdBo').onclick=()=>{if(bo.classList.contains('open'))closeBo(true);else openBo()};
+$('#hdOut').onclick=()=>$('#logout').click();
 const setHdrH=()=>document.documentElement.style.setProperty('--hdrH',Math.round(document.querySelector('header.top').getBoundingClientRect().bottom)+'px');
 addEventListener('resize',()=>{if(bo.classList.contains('open'))setHdrH()});
 if('ResizeObserver' in window)new ResizeObserver(()=>{if(bo.classList.contains('open'))setHdrH()}).observe(document.querySelector('header.top'));
