@@ -265,7 +265,7 @@ async function hit(req, env) {
   if (BOT.test(req.headers.get("user-agent") || "")) return new Response(null, { status: 204 });
   let b; try { b = JSON.parse(await req.text()); } catch { return new Response(null, { status: 204 }); }
   const kind = b?.t, key = String(b?.k ?? "").slice(0, 120);
-  const ok = (kind === "v" && /^[a-z0-9.-]{0,80}$/i.test(key)) || (["g", "p", "s", "c"].includes(kind) && key && !/[<>"]/.test(key));
+  const ok = (kind === "v" && /^[a-z0-9.-]{0,80}$/i.test(key)) || (["g", "p", "s", "c", "l", "u"].includes(kind) && key && !/[<>"]/.test(key));
   if (ok) await db(env).hit(new Date().toISOString().slice(0, 10), kind, key);
   return new Response(null, { status: 204 });
 }
