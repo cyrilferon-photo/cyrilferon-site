@@ -1454,7 +1454,8 @@ try{authed=sessionStorage.getItem('cf-auth')==='1'}catch(_){}
 const REQUIRE_PASSWORD=SITE_LIVE;
 if(!REQUIRE_PASSWORD)authed=true;else authed=!!TOKEN;
 /* connecté : liseré orange, bouton back office dans l'en-tête, lien « Connexion » masqué */
-function adminUI(){const on=BO_ENABLED&&authed;document.body.classList.toggle('is-admin',on);$('#hdBo').hidden=!on;$('#openBo').hidden=on||!BO_ENABLED}
+function adminUI(){const on=BO_ENABLED&&authed;document.body.classList.toggle('is-admin',on);$('#hdBo').hidden=!on;$('#openBo').hidden=on||!BO_ENABLED;
+  if(on&&!nuOk){nuOk=true;renderSite();if(isStore())renderStore()}} // connecté : pas de vérification d'âge pour le Nu artistique
 async function hash(s){
   if(!(window.crypto&&crypto.subtle))return 'plain:'+s;
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('cf-proto:'+s));
