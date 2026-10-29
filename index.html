@@ -322,10 +322,12 @@ body.is-store main>:not(#boutique){display:none!important}
 .cart-scrim.on{opacity:1;pointer-events:auto}
 .cart{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);z-index:44;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.2,.7,.1,1)}
 .cart.open{transform:none}
-.cart-head{display:flex;justify-content:space-between;align-items:center;padding:calc(14px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) 14px 18px;border-bottom:1px solid var(--line)}
+/* le panier défile en entier : les tirages restent visibles (et supprimables) même quand la zone de paiement est haute */
+.cart{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.cart-head{position:sticky;top:0;z-index:2;background:var(--panel);display:flex;justify-content:space-between;align-items:center;padding:calc(14px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) 14px 18px;border-bottom:1px solid var(--line)}
 .cart-head h2{margin:0;font-family:var(--f-display);font-weight:800;font-stretch:70%;text-transform:uppercase;font-size:30px}
 .cart-head .hd-btn{font-size:20px;font-weight:400}
-.cart-body{flex:1;overflow:auto;padding:8px 18px}
+.cart-body{flex:1 0 auto;overflow:visible;padding:8px 18px}
 .citem{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
 .citem img{width:64px;height:80px;object-fit:cover;display:block}
 .citem .ct{font-family:var(--f-display);font-weight:700;font-stretch:80%;text-transform:uppercase;font-size:16px;line-height:1.1}
