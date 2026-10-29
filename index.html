@@ -504,7 +504,7 @@ body.bo-open .scrim{display:none}
 #boStats h3{margin:30px 0 12px}.stx-n{color:var(--safe);margin-left:8px;text-transform:none;letter-spacing:0}#boStats .stx-bars+.hint{margin-top:10px}#boStats .st-sum{margin-top:6px}
 .stx-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);margin-bottom:8px}
 .stx-bars{list-style:none;margin:0;padding:0;display:grid;gap:6px}.stx-bars li{display:grid;grid-template-columns:minmax(0,300px) 1fr 40px;gap:10px;align-items:center;font-size:13px}.stx-l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stx-b{height:8px;background:var(--line)}.stx-b i{display:block;height:100%;background:var(--safe)}.stx-bars b{text-align:right;font-family:var(--f-mono)}
-.stx-ph{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}.stx-ph li{position:relative}.stx-ph img,.stx-x{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:var(--line)}.stx-ph b{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.75);color:#fff;font:10px var(--f-mono);padding:2px 5px}
+.stx-ph{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}.stx-ph li{position:relative}.stx-ph img,.stx-x{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:var(--line)}.stx-open{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in}.stx-open:hover img,.stx-open:focus-visible img{outline:1px solid var(--ink);outline-offset:2px}.stx-ph b{pointer-events:none;position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.75);color:#fff;font:10px var(--f-mono);padding:2px 5px}
 @media (max-width:600px){.stx-bars li{grid-template-columns:minmax(0,130px) 1fr 34px}}
 .st-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .st-sum div{border:1px solid var(--line);padding:10px;display:grid;gap:2px}
@@ -1407,7 +1407,7 @@ pbox.addEventListener('mouseleave',()=>{pbox.style.setProperty('--mx',0);pbox.st
 
 /* lightbox */
 let lbList=[],lbI=0;
-let lbFromHero=false;
+let lbFromHero=false,lbFromBo=false,lbRet=null;
 function openLbList(list,k,fromHero){lbList=list;lbI=k;lbFromHero=!!fromHero;if(lbFromHero){clearInterval(heroT);heroT=null}$('#lb').hidden=false;showLb();$('#lbClose').focus()}
 function openLb(k){const g=S.galleries.find(x=>x.id===S.open);openLbList(g.photos.filter(has),k,false)}
 function printUrl(p){const u=(S.meta[p]&&S.meta[p].printUrl)||'';return /^https?:\/\//i.test(u)?u:''}
@@ -1421,7 +1421,8 @@ $('#lbImg').addEventListener('load',placeLbLogo);addEventListener('resize',()=>{
 function showLb(){const p=lbList[lbI];track('p',p);$('#lbLike').setAttribute('aria-pressed',String(LIKES.has(p)));$('#lbLogo').classList.remove('on');$('#lbImg').src=lbSrc(p);if($('#lbImg').complete)requestAnimationFrame(placeLbLogo);$('#lbPos').textContent=(lbI+1)+' / '+lbList.length;
   $('#lbTitle').textContent=galName(galOf(p))||'';
   const nx=lbList[(lbI+1)%lbList.length];if(nx){const im=new Image();im.src=urls[nx]}
-  const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);const adm=document.body.classList.contains('is-admin');$('#lbReq').hidden=!!(u||shop)||noReq||adm;$('#lbSell').hidden=!adm||shop;$('#lbBuy').href=shop?(USE_PATH?STORE_PATH:'#boutique'):(u||'#');$('#lbBuy').target=shop?'_self':'_blank'}
+  const shop=inStore(p),u=printUrl(p),noReq=/^portrait/i.test((galOf(p)||{}).name||'')||noPrint(p);$('#lbBuy').hidden=!(u||shop);const adm=document.body.classList.contains('is-admin');$('#lbReq').hidden=!!(u||shop)||noReq||adm;$('#lbSell').hidden=!adm||shop;$('#lbBuy').href=shop?(USE_PATH?STORE_PATH:'#boutique'):(u||'#');$('#lbBuy').target=shop?'_self':'_blank';
+  $('#lbSell').textContent=lbFromBo?(shop?'Voir la fiche du tirage':'Proposer un tirage'):'Proposer à la vente';if(lbFromBo&&adm){$('#lbBuy').hidden=true;$('#lbSell').hidden=false}}
 /* photos sans bouton « Demander un tirage » (ex. photo exposée, pas d'édition prévue) */
 const NO_PRINT=new Set(['photos/nu-artistique--silhouette-01.jpg','photos/nu-artistique--sloane-10.jpg','photos/nu-artistique--cerizvodka-03.jpg']);
 function noPrint(p){const m=S.meta&&S.meta[p];if(m&&typeof m.noPrint==='boolean')return m.noPrint;return NO_PRINT.has(p)}
@@ -1471,7 +1472,7 @@ $('#lbReq').onclick=()=>{const p=lbList[lbI],g=galOf(p);closeLb();
   $('#f-subject').value='print';if(g)$('#f-gal').value=g.name;
   $('#f-msg').value=t('reqMsg',{p:photoTitle(p)||photoLabel(p),g:galName(g)});
   glideTo($('#contact'),-60);setTimeout(()=>$('#f-name').focus({preventScroll:true}),900)};
-const closeLb=()=>{$('#lb').hidden=true;if(lbFromHero){lbFromHero=false;if(heroK!==lbI&&heroIds[lbI]===lbList[lbI])showHero(lbI);heroPlay()}};
+const closeLb=()=>{$('#lb').hidden=true;if(lbFromBo){lbFromBo=false;if(lbRet&&lbRet.isConnected)lbRet.focus({preventScroll:true});lbRet=null}if(lbFromHero){lbFromHero=false;if(heroK!==lbI&&heroIds[lbI]===lbList[lbI])showHero(lbI);heroPlay()}};
 $('#lbPrev').onclick=()=>{lbI=(lbI-1+lbList.length)%lbList.length;showLb()};
 $('#lbNext').onclick=()=>{lbI=(lbI+1)%lbList.length;showLb()};
 $('#lbClose').onclick=closeLb;
@@ -1763,6 +1764,9 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-msgd
     const box=$('#boList');if(box&&!box.querySelector('li'))box.innerHTML='<p class="hint">Aucun pour le moment.</p>'}
   catch(_){b.disabled=false;b.textContent='Échec, réessayer'}});
 let boStatDays=30;
+/* stats : clic sur une vignette = la photo en grand par-dessus le back office (qui reste ouvert), avec « Proposer un tirage » */
+let stxLists={};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-stxl]');if(!b)return;const L=stxLists[b.dataset.stxl]||[],k=L.indexOf(b.dataset.p);if(k<0)return;lbFromBo=true;lbRet=b;openLbList(L,k,false)});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-stdays]');if(!b)return;boStatDays=+b.dataset.stdays;renderBo()});
 async function loadStats(){const box=$('#boStats');if(!box)return;
   try{const r=await fetch('/api/stats?days='+boStatDays,{headers:{Authorization:'Bearer '+TOKEN},cache:'no-store'});if(r.status===401){box.innerHTML='<p class="hint">Session expirée : reconnectez-vous.</p>';return}
@@ -1775,14 +1779,14 @@ async function loadStats(){const box=$('#boStats');if(!box)return;
     const LU=Object.fromEntries(sum('u'));const L=sum('l').map(([k,n])=>[k,Math.max(0,n-(LU[k]||0))]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);const lt=L.reduce((a,x)=>a+x[1],0);
     const pv=P.reduce((a,x)=>a+x[1],0);
     const bar=(rows,lab,fmt)=>{const m=Math.max(1,...rows.map(x=>x[1]));return rows.length?`<ul class="stx-bars">${rows.map(([k,n])=>`<li><span class="stx-l">${lab(k)}</span><span class="stx-b"><i style="width:${Math.round(n/m*100)}%"></i></span><b>${n}</b></li>`).join('')}</ul>`:'<p class="hint">Pas encore de données.</p>'};
-    const ph=(rows)=>rows.length?`<ul class="stx-ph">${rows.map(([p,n])=>`<li title="${esc(galName(galOf(p))||'')}">${urls[p]?`<img src="${urls[p]}" alt="" loading="lazy">`:'<span class="stx-x">?</span>'}<b>${n}</b></li>`).join('')}</ul>`:'<p class="hint">Pas encore de données.</p>';
+    const ph=(rows,k)=>{stxLists[k]=rows.map(x=>x[0]).filter(p=>urls[p]);return rows.length?`<ul class="stx-ph">${rows.map(([p,n])=>`<li title="${esc(galName(galOf(p))||'')}">${urls[p]?`<button type="button" class="stx-open" data-stxl="${k}" data-p="${esc(p)}" aria-label="Voir en grand : ${esc(photoLabel(p))}"><img src="${urls[p]}" alt="" loading="lazy"></button>`:'<span class="stx-x">?</span>'}<b>${n}</b></li>`).join('')}</ul>`:'<p class="hint">Pas encore de données.</p>'};
     const step=boStatDays>90?Math.ceil(boStatDays/60):1;const agg=[];for(let i=0;i<days.length;i+=step){const s=days.slice(i,i+step);agg.push([s[0][0],s.reduce((a,x)=>a+x[1],0)])}const amax=Math.max(1,...agg.map(x=>x[1]));
     box.innerHTML=`<div class="st-sum"><div><strong>${tot}</strong><span>visites</span></div><div><strong>${(tot/boStatDays).toFixed(1).replace('.',',')}</strong><span>visites par jour en moyenne</span></div><div><strong>${pv}</strong><span>photos ouvertes en grand</span></div></div>
       <div class="stx-chart${agg.length>45?' dense':agg.length>12?' mid':''}" aria-label="Visites par jour">${agg.map(([k,n])=>`<span title="${new Date(k).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} : ${n}"><b>${n||''}</b><i style="height:calc(${(n/amax).toFixed(3)} * (100% - 34px))"></i></span>`).join('')}</div>
       <div class="stx-axis"><span>${new Date(days[0][0]).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span><span>aujourd’hui</span></div>
       <h3>Galeries les plus ouvertes</h3>${bar(G,k=>esc(k))}
-      <h3>Photos les plus aimées ♥ <span class="stx-n">${lt} j’aime</span></h3>${ph(L.slice(0,24))}
-      <h3>Photos les plus regardées</h3>${ph(P.slice(0,24))}
+      <h3>Photos les plus aimées ♥ <span class="stx-n">${lt} j’aime</span></h3>${ph(L.slice(0,24),'l')}
+      <h3>Photos les plus regardées</h3>${ph(P.slice(0,24),'p')}
       <h3>Tirages consultés en boutique</h3>${bar(Sv.slice(0,12),k=>esc(storeTitle(k)||photoTitle(k)))}
       <h3>Ajouts au panier</h3>${bar(C.slice(0,12),k=>{const[p,f]=k.split('|');const F=FORMATS.find(x=>x.id===f);return esc((storeTitle(p)||photoTitle(p))+(F?' · '+F.label:''))})}
       <h3>D’où viennent les visiteurs</h3>${bar(R.slice(0,10),k=>esc(k))}<p class="hint">Visites venues d’un autre site (Instagram, Google…). Les visites directes (adresse tapée, favoris) n’apparaissent pas ici.</p>`}
