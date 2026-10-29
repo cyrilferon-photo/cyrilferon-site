@@ -152,6 +152,7 @@ section{padding-block:clamp(56px,8vw,110px) 0}
 /* open gallery */
 .gal-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:24px;margin:18px 0 28px}
 .gal-intro p{margin:0;max-width:60ch}
+@media (max-width:760px){#galerie.gated .gal-intro{display:none}}
 .grid{columns:3 280px;column-gap:14px;position:relative;z-index:13}
 .grid button{display:block;width:100%;padding:0;border:0;background:var(--ph-a);margin:0 0 14px;break-inside:avoid;position:relative;overflow:hidden}
 .grid button::before{content:"";position:absolute;inset:0;background:var(--lq,none) center/cover no-repeat;filter:blur(16px);transform:scale(1.15)}
@@ -961,10 +962,11 @@ function renderGallery(){
   $('#galIntro').textContent=(LANG==='en'?g.introEn:'')||g.intro||t('introPh');
   const ph=g.photos.filter(has);
   const veil=isNuGal(g)&&!nuOk;
+  $('#galerie').classList.toggle('gated',!!veil); /* vérification d'âge affichée : texte de la galerie masqué sur téléphone */
   $('#galGrid').innerHTML=ph.length?(veil?`<div class="nu-gate" role="dialog" aria-labelledby="nuT"><p class="mono" id="nuT">${t('gWarn')}</p>
       <p>${t('gText')}</p>
       <p class="nu-small">${t('gCopy')}</p>
-      <form class="nu-form" id="nuForm" novalidate><div class="field"><label for="nu-birth">${t('gBirth')}</label><input id="nu-birth" type="date" required min="1900-01-01" max="${new Date().toISOString().slice(0,10)}"></div>
+      <form class="nu-form" id="nuForm" novalidate><div class="field"><label for="nu-birth">${t('gBirth')}</label><input id="nu-birth" type="date" value="2019-10-31" required min="1900-01-01" max="${new Date().toISOString().slice(0,10)}"></div>
       <p class="status" id="nuMsg" role="alert"></p>
       <div class="nu-btns"><button type="submit" class="send">${t('gEnter')}</button><button type="button" class="linkbtn" id="nuNo">${t('gBack')}</button></div></form>
       <p class="nu-small">${t('gPriv')}</p></div>`:'')+`<div class="grid${veil?' veiled':''}"${veil?' aria-hidden="true"':''}>${ph.map((p,k)=>`<button type="button" data-lb="${k}" aria-label="${t('enlarge')} ${k+1}"${LQIP[p]?` style="--lq:url('${LQIP[p]}')"`:''}><img src="${urls[p]}" alt="${esc(S.meta[p]?.caption||galName(g)+' '+(k+1))}" loading="lazy"${DIMS[p]?` width="${DIMS[p][0]}" height="${DIMS[p][1]}"`:''}></button>${gactHTML(p)}`).join('')}</div>`
