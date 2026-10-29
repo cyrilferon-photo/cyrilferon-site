@@ -389,6 +389,18 @@ body.is-store main>:not(#boutique){display:none!important}
   .grid .gact .ga-more{font-size:18px;letter-spacing:.05em;color:var(--mute);width:28px;height:32px}
   .grid .gact .ga-rm{flex-basis:100%;display:block;text-align:left;color:var(--mute);text-decoration:underline;text-underline-offset:2px;padding:2px 0 0}
   .grid .gact .ga-rm[hidden]{display:none}
+  /* 2 colonnes sur mobile : galeries et boutique */
+  .grid{columns:2;column-gap:8px}
+  .grid .gact{margin-bottom:14px;padding-top:4px;gap:2px}
+  .grid .gact .ga-l{display:none}
+  .grid .gact .ga-r{width:100%;justify-content:flex-end;gap:2px}
+  .grid .gact .ga-like{width:28px;height:28px}.ga-like svg{width:18px;height:18px}
+  .grid .gact .ga-more{width:24px;height:28px;font-size:15px}
+  .grid .gact .ga-rm{text-align:right;font-size:10px}
+  .grid .ga-burst{width:60px;height:60px;margin:-30px 0 0 -30px}
+  .pgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 10px}
+  .pcard{gap:8px}.pcard .pmeta{display:grid;gap:3px}
+  .pcard .pname{font-size:15px}.pcard .pfrom{font-size:11px}.pcard .pgal{font-size:9px}
 }
 .ga-burst{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;color:#fff;pointer-events:none;z-index:3;animation:gaBurst .75s ease-out forwards;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
 .ga-burst svg{width:100%;height:100%;fill:currentColor}
