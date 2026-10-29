@@ -47,6 +47,29 @@ export class SiteStore extends DurableObject {
     await this.ctx.storage.put(k, d);
     return true;
   }
+  // Corrige les statistiques (tests) : remet une rubrique à zéro, ou fixe le total d'une ligne.
+  async statsEdit(kind, key, value) {
+    const all = await this.ctx.storage.list({ prefix: "st:" });
+    const kinds = kind === "l" ? ["l", "u"] : [kind];
+    const batch = {};
+    for (const [k, d] of all) {
+      let ch = false;
+      for (const kd of kinds) {
+        if (!d[kd]) continue;
+        if (key == null) { delete d[kd]; ch = true; }
+        else if (d[kd][key] !== undefined) { delete d[kd][key]; ch = true; }
+      }
+      if (ch) batch[k] = d;
+    }
+    if (Object.keys(batch).length) await this.ctx.storage.put(batch);
+    if (key != null && value > 0) {
+      const tk = "st:" + new Date().toISOString().slice(0, 10);
+      const d = (await this.ctx.storage.get(tk)) || { v: 0 };
+      (d[kind] = d[kind] || {})[key] = value;
+      await this.ctx.storage.put(tk, d);
+    }
+    return true;
+  }
   async mediaPut(key, type, buf) {
     const bytes = new Uint8Array(buf);
     const parts = Math.ceil(bytes.length / CHUNK);

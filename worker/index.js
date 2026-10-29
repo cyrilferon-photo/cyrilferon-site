@@ -269,6 +269,15 @@ async function hit(req, env) {
   if (ok) await db(env).hit(new Date().toISOString().slice(0, 10), kind, key);
   return new Response(null, { status: 204 });
 }
+async function statsEdit(req, env) {
+  if (req.method !== "POST") return notAllowed();
+  if (!(await isAdmin(env, req))) return json({ error: "Session expirée, reconnectez-vous." }, 401);
+  let b; try { b = await req.json(); } catch { return json({ error: "Requête invalide." }, 400); }
+  const kind = b?.kind, key = b?.key == null ? null : String(b.key).slice(0, 200), value = Number(b?.value ?? 0);
+  if (!["g", "p", "s", "c", "l", "ref"].includes(kind) || !Number.isInteger(value) || value < 0 || value > 1e6) return json({ error: "Valeur invalide." }, 400);
+  await db(env).statsEdit(kind, key, value);
+  return json({ ok: true });
+}
 async function stats(req, env) {
   if (!(await isAdmin(env, req))) return json({ error: "Session expirée, reconnectez-vous." }, 401);
   const days = Math.min(400, Math.max(1, Number(new URL(req.url).searchParams.get("days")) || 30));
@@ -459,6 +468,7 @@ export default {
         case "/api/instagram": return await instagram(req, ctx);
         case "/api/hit": return await hit(req, env);
         case "/api/stats": return await stats(req, env);
+        case "/api/stats-edit": return await statsEdit(req, env);
       }
       if (p.startsWith("/api/media/")) return await media(p.slice(11), env, ctx, req);
       if (p.startsWith("/api/")) return json({ error: "Introuvable." }, 404);
