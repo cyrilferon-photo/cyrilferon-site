@@ -70,6 +70,15 @@ export class SiteStore extends DurableObject {
     }
     return true;
   }
+  // Compte une utilisation d'un code promo (après un paiement confirmé).
+  async promoUse(code) {
+    const k = "promo:" + code;
+    const p = await this.ctx.storage.get(k);
+    if (!p) return false;
+    p.uses = (p.uses || 0) + 1;
+    await this.ctx.storage.put(k, p);
+    return true;
+  }
   async mediaPut(key, type, buf) {
     const bytes = new Uint8Array(buf);
     const parts = Math.ceil(bytes.length / CHUNK);

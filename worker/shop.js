@@ -93,8 +93,35 @@ export async function checkCart(env, body) {
   }
   const subtotal = lines.reduce((a, l) => a + l.price * l.q, 0);
   const shipping = ZONES[zone].price;
-  return { lines, zone, subtotal, shipping, total: subtotal + shipping };
+  let promo = null, discount = 0;
+  if (body?.promo) {
+    const p = await getPromo(env, body.promo);
+    if (!p) throw new Error(PROMO_BAD);
+    discount = promoDiscount(p, subtotal);
+    promo = { code: p.code, kind: p.kind, value: p.value, discount };
+  }
+  return { lines, zone, subtotal, shipping, promo, discount, total: Math.round((subtotal - discount + shipping) * 100) / 100 };
 }
+
+// ---------- codes promo ----------
+// La remise porte uniquement sur le prix des tirages (sous-total), jamais sur les frais de port.
+export const PROMO_BAD = "Ce code promo n’est pas valide ou a expiré.";
+export const promoCode = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "");
+export const PROMO_RE = /^[A-Z0-9_-]{3,30}$/;
+export const todayParis = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" }); // AAAA-MM-JJ
+export async function getPromo(env, raw) {
+  const code = promoCode(raw);
+  if (!PROMO_RE.test(code)) return null;
+  const p = await db(env).get("promo:" + code);
+  if (!p || !p.active) return null;
+  const d = todayParis();
+  if ((p.from && d < p.from) || (p.until && d > p.until)) return null;
+  if (p.max > 0 && (p.uses || 0) >= p.max) return null;
+  return p;
+}
+// Montant de la remise en euros (au centime), jamais supérieur au sous-total.
+export const promoDiscount = (p, subtotal) =>
+  Math.min(subtotal, p.kind === "pct" ? Math.round(subtotal * p.value) / 100 : p.value);
 
 // Attribue les numéros d'exemplaire après un paiement confirmé.
 export async function assignNumbers(env, lines) {

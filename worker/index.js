@@ -2,7 +2,7 @@
 // Les fichiers du site (index.html, photos…) sont servis directement par Cloudflare ;
 // ce Worker ne reçoit que les adresses qui ne correspondent à aucun fichier : /api/*, /store, etc.
 import { db, SiteStore } from "./store.js";
-import { json, checkCart, cartMeta, expandCartMeta, assignNumbers, getCatalog, soldCount, key, edKey, ZONES, FORMATS, SOLD_BEFORE } from "./shop.js";
+import { json, checkCart, cartMeta, expandCartMeta, assignNumbers, getCatalog, soldCount, key, edKey, ZONES, FORMATS, SOLD_BEFORE, getPromo, promoCode, PROMO_RE, PROMO_BAD } from "./shop.js";
 import { isAdmin, checkPassword, makeToken, hmac } from "./admin.js";
 import { PP_BASE, ppToken, eur } from "./paypal.js";
 
@@ -33,6 +33,17 @@ async function stripeCheckout(req, env) {
   const origin = new URL(req.url).origin;
   const host = origin.replace(/^https?:\/\//, "");
   const zone = ZONES[cart.zone];
+  let discounts;
+  if (cart.discount > 0) {
+    const cr = await fetch("https://api.stripe.com/v1/coupons", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: form({ amount_off: Math.round(cart.discount * 100), currency: "eur", duration: "once", max_redemptions: 1, name: "Code " + cart.promo.code }),
+    });
+    const c = await cr.json();
+    if (!cr.ok) { console.error("stripe coupon", JSON.stringify(c)); return json({ error: "Stripe a refusé la demande." }, 502); }
+    discounts = { 0: { coupon: c.id } };
+  }
   const params = form({
     mode: "payment",
     locale: lang,
@@ -52,7 +63,8 @@ async function stripeCheckout(req, env) {
     shipping_address_collection: { allowed_countries: Object.fromEntries(zone.countries.map((c, i) => [i, c])) },
     shipping_options: { 0: { shipping_rate_data: { type: "fixed_amount", display_name: zone.name[lang], fixed_amount: { amount: zone.price * 100, currency: "eur" } } } },
     phone_number_collection: { enabled: "true" },
-    metadata: { ...cartMeta(cart.lines), zone: cart.zone },
+    discounts,
+    metadata: { ...cartMeta(cart.lines), zone: cart.zone, ...(cart.promo ? { promo: cart.promo.code, discount: String(cart.discount) } : {}) },
     payment_intent_data: { description: cart.lines.map((l) => `${l.q} × ${l.title} ${l.label}`).join(", ") + (lang === "fr" ? ` · Formulaire de rétractation : ${origin}/retractation` : ` · Withdrawal form: ${origin}/retractation`) },
     custom_text: {
       submit: { message: lang === "fr" ? `Droit de rétractation de 14 jours à réception. [Formulaire de rétractation](${origin}/retractation)` : `14-day right of withdrawal from delivery. [Withdrawal form](${origin}/retractation)` },
@@ -108,9 +120,11 @@ async function stripeWebhook(req, env, ctx) {
     phone: s.customer_details?.phone,
     shipping: s.collected_information?.shipping_details || s.shipping_details || null,
     total: (s.amount_total || 0) / 100,
+    ...(s.metadata?.promo ? { promo: { code: s.metadata.promo, discount: Number(s.metadata.discount) || (s.total_details?.amount_discount || 0) / 100 } } : {}),
     lines,
   };
   await store.put(id, order);
+  if (order.promo) await store.promoUse(order.promo.code);
   ctx.waitUntil(afterOrder(env, order));
   return json({ received: true });
 }
@@ -125,11 +139,12 @@ function addressOf(o) {
 export const orderRows = (o) => (o.lines || []).map((l) => ({
   date: o.date, commande: o.id, paiement: o.provider === "paypal" ? "PayPal" : "Carte", client: o.name || "", email: o.email || "", telephone: o.phone || "",
   adresse: addressOf(o), tirage: l.title, format: l.label, quantite: l.q, numeros: (l.numbers || []).join(" "), prix_unitaire: l.price, total_commande: o.total,
+  code_promo: o.promo?.code || "", remise: o.promo ? o.promo.discount : "",
 }));
 async function afterOrder(env, o) {
   const eur = (n) => Number(n || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
   const lines = (o.lines || []).map((l) => `• ${l.title} — ${l.label} × ${l.q} — n° ${(l.numbers || []).join(", ")} (${eur(l.price)} pièce)`).join("\n");
-  const text = `Nouvelle commande sur cyrilferon.com 🎉\n\n${lines}\n\nTotal payé : ${eur(o.total)} (${o.provider === "paypal" ? "PayPal" : "carte bancaire"})\n\nClient : ${o.name || "—"}\nEmail : ${o.email || "—"}${o.phone ? "\nTéléphone : " + o.phone : ""}\nLivraison : ${addressOf(o) || "—"}${o.zoneMismatch ? "\n⚠ Le pays de livraison ne correspond pas à la zone payée." : ""}\n\nNuméros à signer ci-dessus. Détail dans le back office, onglet Stocks.`;
+  const text = `Nouvelle commande sur cyrilferon.com 🎉\n\n${lines}${o.promo ? `\n\nCode promo ${o.promo.code} : −${eur(o.promo.discount)} (sur les tirages)` : ""}\n\nTotal payé : ${eur(o.total)} (${o.provider === "paypal" ? "PayPal" : "carte bancaire"})\n\nClient : ${o.name || "—"}\nEmail : ${o.email || "—"}${o.phone ? "\nTéléphone : " + o.phone : ""}\nLivraison : ${addressOf(o) || "—"}${o.zoneMismatch ? "\n⚠ Le pays de livraison ne correspond pas à la zone payée." : ""}\n\nNuméros à signer ci-dessus. Détail dans le back office, onglet Stocks.`;
   const subj = `Vente : ${(o.lines || []).map((l) => `${l.title} ${l.label}`).join(", ")}`.slice(0, 180);
   await Promise.allSettled([
     mail(env, { subject: subj, text, replyTo: o.email }).catch((e) => console.error("mail vente", e?.message || e)),
@@ -150,7 +165,7 @@ async function paypalCreate(req, env) {
       intent: "CAPTURE",
       purchase_units: [{
         description: (lang === "fr" ? "Tirages d’art — Cyril Féron · Rétractation : " : "Fine art prints — Cyril Féron · Withdrawal form: ") + new URL(req.url).host + "/retractation",
-        amount: { ...eur(cart.total), breakdown: { item_total: eur(cart.subtotal), shipping: eur(cart.shipping) } },
+        amount: { ...eur(cart.total), breakdown: { item_total: eur(cart.subtotal), shipping: eur(cart.shipping), ...(cart.discount > 0 ? { discount: eur(cart.discount) } : {}) } },
         items: cart.lines.map((l) => ({ name: `${l.title} — ${l.label}`.slice(0, 127), quantity: String(l.q), unit_amount: eur(l.price), category: "PHYSICAL_GOODS" })),
       }],
       application_context: { brand_name: "Cyril Féron", shipping_preference: "GET_FROM_FILE", user_action: "PAY_NOW", locale: lang === "fr" ? "fr-FR" : "en-GB" },
@@ -158,7 +173,7 @@ async function paypalCreate(req, env) {
   });
   const d = await r.json();
   if (!r.ok) { console.error("paypal create", JSON.stringify(d)); return json({ error: "PayPal a refusé la demande." }, 502); }
-  await db(env).put(`pending:${d.id}`, { lines: cart.lines, zone: cart.zone, total: cart.total, created: new Date().toISOString() });
+  await db(env).put(`pending:${d.id}`, { lines: cart.lines, zone: cart.zone, total: cart.total, promo: cart.promo ? { code: cart.promo.code, discount: cart.discount } : null, created: new Date().toISOString() });
   return json({ id: d.id });
 }
 
@@ -191,10 +206,12 @@ async function paypalCapture(req, env, ctx) {
     name: [d.payer?.name?.given_name, d.payer?.name?.surname].filter(Boolean).join(" "),
     shipping: pu.shipping || null,
     total: cart.total,
+    ...(cart.promo ? { promo: cart.promo } : {}),
     lines,
   };
   await store.put(id, order);
   await store.del(`pending:${orderID}`);
+  if (order.promo) await store.promoUse(order.promo.code);
   ctx.waitUntil(afterOrder(env, order));
   return json({ ok: true, lines });
 }
@@ -233,10 +250,10 @@ async function ordersExport(req, env) {
     if (!r.ok) return json({ error: "Google Sheets a refusé l’envoi." }, 502);
     return json({ ok: true, rows: rows.length });
   }
-  const head = ["date", "commande", "paiement", "client", "email", "telephone", "adresse", "tirage", "format", "quantite", "numeros", "prix_unitaire", "total_commande"];
+  const head = ["date", "commande", "paiement", "client", "email", "telephone", "adresse", "tirage", "format", "quantite", "numeros", "prix_unitaire", "code_promo", "remise", "total_commande"];
   const cell = (v) => { const s = String(v ?? ""); return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const fmt = (r) => head.map((h) => cell(h === "date" ? new Date(r.date).toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : typeof r[h] === "number" ? String(r[h]).replace(".", ",") : r[h])).join(";");
-  const titles = ["Date", "N° commande", "Paiement", "Client", "Email", "Téléphone", "Adresse de livraison", "Tirage", "Format", "Quantité", "Numéros d'exemplaire", "Prix unitaire (€)", "Total commande (€)"];
+  const titles = ["Date", "N° commande", "Paiement", "Client", "Email", "Téléphone", "Adresse de livraison", "Tirage", "Format", "Quantité", "Numéros d'exemplaire", "Prix unitaire (€)", "Code promo", "Remise commande (€)", "Total commande (€)"];
   const csv = "\ufeff" + [titles.join(";"), ...rows.map(fmt)].join("\r\n");
   return new Response(csv, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="commandes-cyrilferon-${new Date().toISOString().slice(0, 10)}.csv"`, "cache-control": "no-store" } });
 }
@@ -245,6 +262,48 @@ async function ordersList(req, env) {
   if (!(await isAdmin(env, req))) return json({ error: "Session expirée, reconnectez-vous." }, 401);
   const list = await db(env).list("order:", 200);
   return json({ orders: list.map((x) => x.v).sort((a, b) => String(b.date).localeCompare(String(a.date))) });
+}
+
+// ---------- codes promo ----------
+// Vérification publique d'un code (panier) : renvoie le type et la valeur de la remise.
+async function promoCheck(req, env) {
+  if (req.method !== "POST") return notAllowed();
+  let b; try { b = await req.json(); } catch { return json({ error: "Requête invalide." }, 400); }
+  const p = await getPromo(env, b?.code);
+  if (!p) return json({ error: PROMO_BAD }, 404);
+  return json({ code: p.code, kind: p.kind, value: p.value });
+}
+// Gestion depuis le back office : liste, création / modification, suppression.
+async function promos(req, env) {
+  if (!(await isAdmin(env, req))) return json({ error: "Session expirée, reconnectez-vous." }, 401);
+  const s = db(env);
+  if (req.method === "GET") {
+    const list = (await s.list("promo:", 500)).map((x) => x.v).sort((a, b) => String(b.created).localeCompare(String(a.created)));
+    return json({ promos: list });
+  }
+  if (req.method === "DELETE") {
+    const code = promoCode(new URL(req.url).searchParams.get("code"));
+    if (!PROMO_RE.test(code)) return json({ error: "Code invalide." }, 400);
+    await s.del("promo:" + code);
+    return json({ ok: true });
+  }
+  if (req.method !== "PUT") return notAllowed();
+  let b; try { b = await req.json(); } catch { return json({ error: "Requête invalide." }, 400); }
+  const code = promoCode(b?.code);
+  if (!PROMO_RE.test(code)) return json({ error: "Le code doit faire de 3 à 30 caractères : lettres, chiffres, - ou _ (sans espace ni accent)." }, 400);
+  const kind = b?.kind === "eur" ? "eur" : "pct";
+  const value = Number(b?.value);
+  if (!Number.isInteger(value) || value < 1 || (kind === "pct" ? value > 100 : value > 10000)) return json({ error: kind === "pct" ? "Indiquez un pourcentage entre 1 et 100." : "Indiquez un montant en euros (nombre entier)." }, 400);
+  const dateOk = (d) => !d || /^\d{4}-\d{2}-\d{2}$/.test(d);
+  const from = String(b?.from || ""), until = String(b?.until || "");
+  if (!dateOk(from) || !dateOk(until) || (from && until && until < from)) return json({ error: "Dates invalides." }, 400);
+  const max = b?.max === "" || b?.max == null ? 0 : Number(b.max);
+  if (!Number.isInteger(max) || max < 0 || max > 100000) return json({ error: "Nombre d’utilisations invalide." }, 400);
+  const old = (await s.get("promo:" + code)) || {};
+  if (b?.create && old.code) return json({ error: `Le code ${code} existe déjà.` }, 409);
+  const p = { code, kind, value, from, until, max, note: String(b?.note || "").trim().slice(0, 80), active: b?.active !== false, uses: old.uses || 0, created: old.created || new Date().toISOString() };
+  await s.put("promo:" + code, p);
+  return json({ ok: true, promo: p });
 }
 
 // Remise à zéro avant l'ouverture : supprime commandes et compteurs (les ventes d'avant restent comptées).
@@ -469,6 +528,8 @@ export default {
         case "/api/hit": return await hit(req, env);
         case "/api/stats": return await stats(req, env);
         case "/api/stats-edit": return await statsEdit(req, env);
+        case "/api/promo": return await promoCheck(req, env);
+        case "/api/promos": return await promos(req, env);
       }
       if (p.startsWith("/api/media/")) return await media(p.slice(11), env, ctx, req);
       if (p.startsWith("/api/")) return json({ error: "Introuvable." }, 404);
